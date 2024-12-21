@@ -3,7 +3,7 @@ import os
 import random
 from log import create_logger
 
-logger = create_logger(__name__, "log.txt")
+logger = create_logger(__name__)
 
 
 def change_pace(path, target_speed: float):

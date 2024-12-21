@@ -1,5 +1,6 @@
 import os
 import sys
+import datetime
 import logging
 import colorlog
 from logging.handlers import RotatingFileHandler
@@ -7,7 +8,7 @@ from logging.handlers import RotatingFileHandler
 
 def create_logger(
     logger_name: str,
-    log_file: str,
+    log_file: str = "",
     level: int = logging.DEBUG,
     max_bytes: int = 10 * 1024 * 1024,
     backup_count: int = 5,
@@ -25,7 +26,10 @@ def create_logger(
     # 创建logger对象
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
-
+    if not log_file:
+        log_file = os.path.join(
+            "../logs", f"{datetime.datetime.now().strftime('%Y-%m-%d')}.log.log"
+        )
     # 创建文件处理器并设置格式
     if not os.path.exists("../logs"):
         os.makedirs("../logs")
