@@ -3,3 +3,5 @@ gmssl
 tqdm
 schedule
 mitmproxy
+pycryptodome
+colorlog
