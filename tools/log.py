@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 import colorlog
@@ -26,6 +27,11 @@ def create_logger(
     logger.setLevel(level)
 
     # 创建文件处理器并设置格式
+    if not os.path.exists("../logs"):
+        os.makedirs("../logs")
+    if not os.path.exists(log_file):
+        with open(log_file, "w") as f:
+            f.write("")
     file_handler = RotatingFileHandler(
         log_file, maxBytes=max_bytes, backupCount=backup_count
     )
