@@ -1,7 +1,7 @@
 ## 云运动代刷脚本(安徽三联学院)
 > 免责声明：一切内容只能用于交流学习，24h内自觉卸载，否则后果自负。
 
-**此库基于原作者[Zirconium233](https://github.com/Zirconium233 "Zirconium233")的[yunForNewVersion](https://github.com/Zirconium233/yunForNewVersion "yunForNewVersion")专门针对我所在的学校([安徽三联学院](https://www.slu.edu.cn/ "安徽三联学院"))修改而来，若是同校校友可直接使用，否则请看根据所在学校[自行修改](# 自行修改简要教程)。**
+**此库基于原作者[Zirconium233](https://github.com/Zirconium233 "Zirconium233")的[yunForNewVersion](https://github.com/Zirconium233/yunForNewVersion "yunForNewVersion")专门针对我所在的学校([安徽三联学院](https://www.slu.edu.cn/ "安徽三联学院"))修改而来，若是同校校友可直接使用，否则请看根据所在学校[自行修改](#自行修改简要教程)。**
 
 ### 简要教程:
 > 以下只做简要使用介绍，若想查看细节请查看原作者的[Zirconium233](https://github.com/Zirconium233 "Zirconium233")的[yunForNewVersion](https://github.com/Zirconium233/yunForNewVersion "yunForNewVersion")项目
@@ -52,7 +52,7 @@ config中token为空，是否尝试使用账号密码登录?[Y/N]:
 则成功运行该脚本
 
 ##### 2.登录
-登录方式有两种：[账号密码登录](# 账号密码登录), [token登录](# token登录)
+登录方式有两种：[账号密码登录](#账号密码登录), [token登录](#token登录)
 ###### 账号密码登录
 在运行后显示以下信息:
 ```
@@ -120,7 +120,7 @@ sign:          *************
 ```
 以上是在三联学院的已经生成的跑步路线，文件名对应运动路程，
 输入序号选择任务文件即开始运动
-> 项目中已有的跑步记录是在三联学院操场的运动记录，若是其他学校请[自行生成跑步记录](# 自行生成跑步记录)
+> 项目中已有的跑步记录是在三联学院操场的运动记录，若是其他学校请[自行生成跑步记录](#自行生成跑步记录)
 
 ##### (2) 导航模式
 > 此处教程改编于[kontori](https://github.com/kontori)的[yun](https://github.com/kontori/yun?tab=readme-ov-file)
@@ -146,6 +146,7 @@ map_key =
 无需等待直接通过，没有跑步轨迹，程序可以通过，但是具有被人工检测的风险
 ------------
 
+未完待续
 
 ### 自行修改简要教程
 #### 更改目标服务器地址
