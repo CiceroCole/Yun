@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.bouncycastle</groupId>
+  <artifactId>bcutil-lts8on</artifactId>
+  <packaging>jar</packaging>
+  <name>Bouncy Castle ASN.1 Extension and Utility APIs (LTS Distribution)</name>
+  <version>2.73.7</version>
+  <description>The Bouncy Castle Java APIs for ASN.1 extension and utility APIs used to support bcpkix and bctls. This jar contains APIs for Java 8 and later.</description>
+  <url>https://www.bouncycastle.org/lts-java</url>
+  <licenses>
+    <license>
+      <name>Bouncy Castle Licence</name>
+      <url>https://www.bouncycastle.org/licence.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>https://github.com/bcgit/bc-lts-java</url>
+  </scm>
+  <issueManagement>
+     <system>GitHub</system>
+     <url>https://github.com/bcgit/bc-lts-java/issues</url>
+  </issueManagement>
+  <developers>
+    <developer>
+      <id>feedback-crypto</id>
+      <name>The Legion of the Bouncy Castle Inc.</name>
+      <email>feedback-crypto@bouncycastle.org</email>
+    </developer>
+  </developers>
+  <dependencies>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-lts8on</artifactId>
+      <version>[2.73.7,2.74.0)</version>
+      <type>jar</type>
+    </dependency>
+  </dependencies>
+</project>
