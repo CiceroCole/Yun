@@ -31,7 +31,7 @@
    ```
    - **激活虚拟环境**：
        ```bash
-       act.bat
+       ./venv/Scripts/activate
        ```
  - **安装依赖**
    - 在激活的虚拟环境中，使用以下命令安装 `requirements.txt` 中列出的所有依赖：
@@ -64,17 +64,17 @@ config中token为空，是否尝试使用账号密码登录?[Y/N]:
 > 此部分的教程改编于[Zirconium233](https://github.com/Zirconium233 "Zirconium233")的[yunForNewVersion](https://github.com/Zirconium233/yunForNewVersion "yunForNewVersion")
 
 **1.手机安装抓包软件**（例如以下软件）:
-![抓包软件](https://pic.imgdb.cn/item/67664cd2d0e0a243d4e7780d.jpg)
+![抓包软件](https://pic.superbed.cc/item/676659a5fa9f77b4dc0d73c2.jpg)
 
 **2.启动抓包软件**（以PCAPdroid为例）
-![启动抓包软件](https://pic.imgdb.cn/item/67664c9cd0e0a243d4e777e4.jpg)
+![启动抓包软件](https://pic.superbed.cc/item/676659e6fa9f77b4dc0d79f4.jpg)
 
 **3.打开云运动APP，随意进行操作(不用跑步)
 查看类似以下的请求（端口为8080，对于三联学生链接是`sports.aiyyd.com:8080`）:**
-![请求](https://pic.imgdb.cn/item/67664c32d0e0a243d4e777b0.png)
+![请求](https://pic.superbed.cc/item/676659bdfa9f77b4dc0d75c8.png)
 
 **4.查看请求的请求头:**
-[![item.filename](https://pic.imgdb.cn/item/67664be3d0e0a243d4e7779e.jpg)](https://pic.imgdb.cn/item/67664be3d0e0a243d4e7779e.jpg)
+![请求头](https://pic.superbed.cc/item/67665986fa9f77b4dc0d7123.jpg)
 把以上内容对应填入项目目录下的`config.ini`文件中保存，并重新启动脚本即可
 
 #### 3.模式介绍
@@ -144,11 +144,10 @@ map_key =
 
 ##### (3) 快速模式 (不推荐)
 无需等待直接通过，没有跑步轨迹，程序可以通过，但是具有被人工检测的风险
-
 ------------
+
 
 ### 自行修改简要教程
 #### 更改目标服务器地址
 #### 自行地图选点
 #### 自行生成跑步记录
->>>>>>> master
