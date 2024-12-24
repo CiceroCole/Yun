@@ -607,9 +607,9 @@ class Yun_For_New:
 
 
 if __name__ == "__main__":
-    logger = create_logger(
-        __name__, f"./logs/{datetime.datetime.now().strftime('%Y-%m-%d')}.log"
-    )
+    main_path = os.path.dirname(os.path.abspath(__file__))
+    log_file_name = f"{datetime.datetime.now().strftime('%Y-%m-%d')}.log"
+    logger = create_logger(__name__, f"{main_path}/logs/{log_file_name}")
     args = parse_args()
     cfg_path = args.config_path
     # 加载配置文件

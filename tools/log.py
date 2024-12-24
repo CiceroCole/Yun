@@ -26,10 +26,18 @@ def create_logger(
     # 创建logger对象
     logger = logging.getLogger(logger_name)
     logger.setLevel(level)
+    main_path = "/".join(
+        os.path.dirname(os.path.abspath(__file__)).replace("\\", "/").split("/")[:-1]
+    )
     if not log_file:
-        log_file = os.path.join(
-            "../logs", f"{datetime.datetime.now().strftime('%Y-%m-%d')}.log.log"
+        log_file = (
+            f"{main_path}/logs/{datetime.datetime.now().strftime('%Y-%m-%d')}.log"
         )
+    if not os.path.exists(f"{main_path}/logs"):
+        os.makedirs(f"{main_path}/logs")
+    if not os.path.exists(log_file):
+        with open(log_file, "w") as f:
+            f.write("")
     # 创建文件处理器并设置格式
     if not os.path.exists("../logs"):
         os.makedirs("../logs")
