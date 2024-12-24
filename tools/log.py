@@ -67,8 +67,8 @@ def create_logger(
         "DEBUG": "cyan",  # 接近天蓝色，但用cyan代替
         "INFO": "blue",  # 更接近标准的蓝色，而不是天蓝色
         "WARNING": "yellow",  # 黄色
-        "ERROR": "magenta",  # 粉红色，虽然不完全是，但最接近的标准颜色
-        "CRITICAL": "red",  # 红色，也称为血红色
+        "ERROR": "red",  # 粉红色，虽然不完全是，但最接近的标准颜色
+        "CRITICAL": "bold_red",  # 红色，也称为血红色
     }
     logger_formatter = colorlog.ColoredFormatter(
         custom_format,

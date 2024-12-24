@@ -101,7 +101,10 @@ class Login:
 
         # 判断school_id是否在[Yun]中
         if "school_id" not in conf["Yun"]:
-            conf.set("Yun", "school_id", "100")
+            # 合工大 100
+            # conf.set("Yun", "school_id", "100")
+            # 三联学院 125
+            conf.set("Yun", "school_id", "125")
             with open(config_file, "w", encoding="utf-8") as f:
                 conf.write(f)
 
@@ -149,6 +152,10 @@ class Login:
         else:
             sys_edition = input("请输入设备版本(可略): ") or "14"
 
+        if DeviceName.lower() == "iphone":
+            platform = "ios"
+        else:
+            platform = "android"
         # md5签名结果用hex
         encryptData = (
             '''{"password":"'''
@@ -161,8 +168,8 @@ class Login:
         )
         # 签名结果
         sign_data = (
-            "platform=android&utc={}&uuid={}&appsecret=pie0hDSfMRINRXc7s1UIXfkE".format(
-                utc, uuid
+            "platform={}&utc={}&uuid={}&appsecret=pie0hDSfMRINRXc7s1UIXfkE".format(
+                platform, utc, uuid
             )
         )
         sign = Login.md5_encryption(sign_data)

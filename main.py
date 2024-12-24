@@ -110,7 +110,7 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
             "deviceId": my_device_id,
             "deviceName": my_device_name,
             "version": my_app_edition,
-            "platform": "android",
+            "platform": platform,
             "Content-Type": "application/json; charset=utf-8",
             "Connection": "Keep-Alive",
             "Accept-Encoding": "gzip",
@@ -127,13 +127,28 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
         url=url, data=json.dumps(data_json), headers=headers
     )  # data进行了加密
     try:
-        result = decrypt_sm4(req.text, b64decode(default_key)).decode()
+        result = decrypt_sm4(req.text, b64decode(default_key)).decode("utf-8")
         logger.debug(f"请求地址: {url}")
-        logger.debug(f"请求响应: \n{get_format_log(eval(result))}")
+        logger.debug(f"请求响应: ")
+        logger.debug(get_format_log(eval(result)))
         return result
     except Exception as e:
-        logger.error(f"请求解码未成功!: \n{e}")
-        return req.text
+        if eval(req.text)["code"] == 500:
+            logger.warning("远程服务器服务异常!")
+        logger.error(f"请求异常报错: {e}")
+        logger.error(f"请求异常响应: {req.text}")
+        return False
+
+
+def Logout():
+    config = configparser.ConfigParser()
+    config.read("config.ini", encoding="utf-8")
+    config.set("User", "token", "")
+    config.set("User", "uuid", "")
+    config.set("Login", "username", "")
+    config.set("Login", "password", "")
+    with open("config.ini", "w+", encoding="utf-8") as f:
+        config.write(f)
 
 
 def noTokenLogin():
@@ -156,7 +171,12 @@ def noTokenLogin():
 class Yun_For_New:
 
     def __init__(self, auto_generate_task=False):
-        data = json.loads(default_post("/run/getHomeRunInfo", ""))["data"]["cralist"][0]
+        rawdata = default_post("/run/getHomeRunInfo", "")
+        if not rawdata:
+            logger.error("获取用户信息失败，请检查网络连接或稍后再试")
+            print("获取用户信息失败，请检查网络连接或稍后再试")
+            exit()
+        data = json.loads(rawdata)["data"]["cralist"][0]
         self.raType = data["raType"]
         self.raId = data["id"]
         self.strides = strides
@@ -171,7 +191,6 @@ class Yun_For_New:
         points = data["points"].split("|")
         logger.info("跑步点位:")
         logger.info(get_format_log(points))
-        # exit()
         self.now_path = 0
 
         # self.manageList: List[Dict] = []  # 列表的每一个元素都是字典
@@ -196,6 +215,8 @@ class Yun_For_New:
                     logger.info(my_select_point + " 不存在")
                     # raise ValueError
             logger.info("开始标记打卡点...")
+            if not printLog:
+                print("开始标记打卡点...")
             # for exclude_point in exclude_points:
             #     try:
             #         points.remove(exclude_point)
@@ -221,7 +242,7 @@ class Yun_For_New:
             self.now_time = int(
                 random.uniform(min_consume, max_consume) * 60 * (self.now_dist / 1000)
             )
-            logger.info(
+            msg = (
                 "打卡点标记完成！本次将打卡"
                 + str(self.myLikes)
                 + "个点，处理"
@@ -234,6 +255,9 @@ class Yun_For_New:
                 + str(self.now_time % 60)
                 + "秒"
             )
+            logger.info(msg)
+            if not printLog:
+                print(msg)
             # 这三个只是初始化，并非最终值
             self.recordStartTime = ""
             self.crsRunRecordId = 0
@@ -259,6 +283,9 @@ class Yun_For_New:
         if self.now_dist / 1000 < min_distance:
             logger.info("跑完了一圈关键点，长度仍然不够，会自动回跑绕圈圈")
             logger.info("公里数不足" + str(min_distance) + "公里，将自动回跑...")
+            if printLog:
+                print("跑完了一圈关键点，长度仍然不够，会自动回跑绕圈圈")
+                print("公里数不足" + str(min_distance) + "公里，将自动回跑...")
             index = 0
             while self.now_dist / 1000 < min_distance:
                 logger.debug(get_format_log(("manageList : \n", self.manageList)))
@@ -292,7 +319,7 @@ class Yun_For_New:
             logger.error("今日高德地图API已达使用上限")
             exit()
         logger.info("高德地图响应: ")
-        logger.info(resp_json)
+        logger.info(get_format_log(resp_json))
         paths = resp_json["data"]["paths"]
         split_points = []
         split_point = []
@@ -397,18 +424,25 @@ class Yun_For_New:
     def start(self):
         default_post("/run/crsReocordInfo", "")
         data = {"raRunArea": self.raRunArea, "raType": self.raType, "raId": self.raId}
-        j = json.loads(default_post("/run/start", json.dumps(data)))
+        j: dict = json.loads(default_post("/run/start", json.dumps(data)))
         # 发送开始请求
         if j["code"] == 200:
-            try:
-                self.recordStartTime = j["data"]["recordStartTime"]
-                self.crsRunRecordId = j["data"]["id"]
-                self.userName = j["data"]["studentId"]
-                logger.info("云运动任务创建成功！\n")
-            except KeyError:
-                logger.error(f'云运动任务创建失败！: {j["data"]["warnContent"]}')
+            jdata: dict = j["data"]
+            warnContent = jdata.get("warnContent", "")
+            if warnContent:
+                info_ = ""
+                if "继续跑步不算当天有效次数" in warnContent:
+                    info_ = "您的今日跑步任务已完成"
+                elif "由于当前时间不在学校规定的跑步时间内" in warnContent:
+                    info_ = "当前不在您的学校规定的跑步时间段内"
+                print(">>" * 10 + info_ + "<<" * 10)
+                logger.error(f'云运动任务创建失败！: {jdata["warnContent"]}')
                 exit(0)
-                return False
+            self.recordStartTime = jdata["recordStartTime"]
+            self.crsRunRecordId = jdata["id"]
+            self.userName = jdata["studentId"]
+            logger.info("云运动任务创建成功!")
+            print(">>>" * 10 + "开始跑步" + "<<<" * 10)
 
     def split(self, points):
         data = {
@@ -429,19 +463,20 @@ class Yun_For_New:
             "strides": self.strides,
             "userName": self.userName,
         }
-        resp = default_post(
+        default_post(
             "/run/splitPointCheating",
             gzip.compress(data=json.dumps(data).encode("utf-8")),
             isBytes=True,
         )  # 这里是特殊的接口，不清楚其他学校，但合工大的完全OK。
         # 发送一组点
-        # logger.info("  " + resp)
 
     def do(self):
         sleep_time = self.now_time / (self.task_count + 1)
         logger.info("等待" + format(sleep_time, ".2f") + "秒...")
+        if not printLog:
+            print("等待" + format(sleep_time, ".2f") + "秒...")
         time.sleep(sleep_time)  # 隔一段时间
-        for task_index, task in enumerate(self.task_list):
+        for task_index, task in tqdm(enumerate(self.task_list)):
             logger.info("开始处理第" + str(task_index + 1) + "个点...")  # 打卡点组
             for split_index, split in enumerate(
                 task["points"]
@@ -530,13 +565,12 @@ class Yun_For_New:
             "strides": self.strides,
             "userName": self.userName,
         }
-        resp = default_post(
+        default_post(
             "/run/splitPointCheating",
             gzip.compress(data=json.dumps(data).encode("utf-8")),
             isBytes=True,
         )  # 这里是特殊的接口，不清楚其他学校，但合工大的完全OK。
         # 发送一组点
-        # logger.info("  " + resp)
 
     def finish_by_points_map(self):
         logger.info("发送结束信号...")
@@ -562,11 +596,10 @@ class Yun_For_New:
         resp = default_post("/run/finish", json.dumps(data))
         try:
             if eval(resp) == {"code": 200, "msg": "恭喜你当前跑步成绩合格，加油^_^"}:
-                print(("=" * 10) + "本次运动成功结束！" + ("=" * 10))
+                print(("===" * 10) + "本次运动成功结束！" + ("===" * 10))
         except Exception as e:
             logger.error(e)
             logger.error("发送失败！")
-        # logger.info(get_format_log(resp))
 
     def finish(self):
         logger.info("发送结束信号...")
@@ -596,13 +629,19 @@ class Yun_For_New:
         except Exception as e:
             logger.error(e)
             logger.error("发送失败！")
-        # logger.info(get_format_log(resp))
 
 
 if __name__ == "__main__":
+    printLog = False
+    if "--printLog" in sys.argv:
+        printLog = True
+    elif input("是否打印日志?[Y/N]: ") in "Yy":
+        printLog = True
     main_path = os.path.dirname(os.path.abspath(__file__))
     log_file_name = f"{datetime.datetime.now().strftime('%Y-%m-%d')}.log"
     logger = create_logger(__name__, f"{main_path}/logs/{log_file_name}")
+    if not printLog:
+        logger.removeHandler(logger.handlers[1])
     args = parse_args()
     cfg_path = args.config_path
     # 加载配置文件
@@ -665,58 +704,64 @@ if __name__ == "__main__":
                 conf.write(f)
         # config app版本检查 当前可用3.4.5
 
-    print("您的信息为: ")
-    print("Token: ".ljust(15) + my_token)
-    print("deviceId: ".ljust(15) + my_device_id)
-    print("deviceName: ".ljust(15) + my_device_name)
-    print("utc: ".ljust(15) + my_utc)
-    print("uuid: ".ljust(15) + my_uuid)
-    print("sign: ".ljust(15) + my_sign)
-    print("map_key: ".ljust(15) + my_key)
+    logger.info("您的信息为: ")
+    logger.info("Token: ".ljust(15) + my_token)
+    logger.info("uuid: ".ljust(15) + my_uuid)
+    logger.info("platform: ".ljust(15) + platform)
+    logger.info("deviceId: ".ljust(15) + my_device_id)
+    logger.info("deviceName: ".ljust(15) + my_device_name)
+    logger.info("utc: ".ljust(15) + my_utc)
+    logger.info("sign: ".ljust(15) + my_sign)
+    logger.info("map_key: ".ljust(15) + my_key)
 
-    if args.auto_run:
-        sure = "y"
+    username = conf.get("Login", "username")
+    if username:
+        print(f"您的账号为: {username}")
     else:
-        sure = input("请确定数据无误[Y/N]: ")
-    if sure in "Yy":
-        if args.auto_run:
-            log_table = "y"
+        print(f"你的token为: {my_token}")
+    sure = input("是否使用此账号进行运动?[Y/N]: ")
+    if sure not in "Yy":
+        if input("重新登录(L)或退出程序(Q): ") in "重新登录Ll":
+            Logout()
+            my_token, my_device_id, my_device_name, my_uuid, my_sys_edition = (
+                noTokenLogin()
+            )
         else:
-            print("(1) 打表模式 : 固定路线无需高德地图key")
-            print("(2) 导航模式 : 根据选点与高德地图key自动生成路线")
-            print("(3) 快速模式 : 直接提交路线(不建议)")
-            print("(4) 退出程序")
-            log_table = input("请输入序号选择模式: ")
-        if log_table == "1":
-            if not args.auto_run:
-                path = os.path.abspath("./tasks")
-                isDrift = input("是否为数据添加漂移[y/n]: ")
-                if isDrift in "yY":
-                    driftChoice = True
-                else:
-                    driftChoice = False
-                Yun = Yun_For_New(auto_generate_task=False)
-                Yun.start()
-                Yun.do_by_points_map(path=path, isDrift=driftChoice)
-                Yun.finish_by_points_map()
-            else:
-                path = os.path.abspath("./tasks")
-                Yun = Yun_For_New(auto_generate_task=False)
-                Yun.start()
-                Yun.do_by_points_map(path=path, random_choose=True, isDrift=args.drift)
-                Yun.finish_by_points_map()
-        if log_table == "2":
-            Yun = Yun_For_New(auto_generate_task=True)
-            print("起始点: [" + Yun.my_point + "]")
-            Yun.start()
-            Yun.do()
-            Yun.finish()
-        if log_table == "3":
-            Yun = Yun_For_New(auto_generate_task=True)
-            Yun.start()
-            Yun.finish()
-        exit()
-
+            print("===" * 10, "退出程序", "===" * 10)
+            sys.exit(0)
+    if args.auto_run:
+        log_table = "y"
     else:
-        print("程序即将退出")
-        exit()
+        print("(1) 打表模式 : 固定路线无需高德地图key")
+        print("(2) 导航模式 : 根据选点与高德地图key自动生成路线")
+        print("(3) 快速模式 : 直接提交路线(不建议)")
+        print("(4) 退出程序")
+        log_table = input("请输入序号选择模式: ")
+    if log_table == "1":
+        if not args.auto_run:
+            path = os.path.abspath("./tasks")
+            isDrift = input("是否为数据添加漂移[y/n]: ")
+            if isDrift in "yY":
+                driftChoice = True
+            else:
+                driftChoice = False
+            Yun = Yun_For_New(auto_generate_task=False)
+            Yun.start()
+            Yun.do_by_points_map(path=path, isDrift=driftChoice)
+            Yun.finish_by_points_map()
+        else:
+            path = os.path.abspath("./tasks")
+            Yun = Yun_For_New(auto_generate_task=False)
+            Yun.start()
+            Yun.do_by_points_map(path=path, random_choose=True, isDrift=args.drift)
+            Yun.finish_by_points_map()
+    if log_table == "2":
+        Yun = Yun_For_New(auto_generate_task=True)
+        print("起始点: [" + Yun.my_point + "]")
+        Yun.start()
+        Yun.do()
+        Yun.finish()
+    if log_table == "3":
+        Yun = Yun_For_New(auto_generate_task=True)
+        Yun.start()
+        Yun.finish()
