@@ -175,10 +175,13 @@
    若是其他学院的学生也使用云运动进行运动，
    可以通过修改更改目标服务器地址，地图选点，自行生成跑步记录的方式使用本脚本
 #### 更改目标服务器地址
-1. 获取学院目标服务器地址
+1. 获取`school_host`,`school_id`
    在[token登录](#token登录)中，使用抓包软件可获取目标服务器地址(普遍使用8080端口号)
 2. 修改`school_host`字段
    进入项目目录下`config.ini`文件中修改`school_host`字段
+3. 修改`school_id`字段
+   进入项目目录下`config.ini`文件中修改`school_id`字段
+
 #### 自行地图选点
 在[导航模式](#DaoHangMode)的说明中，我们获得了一个高德地图key并添加至`config.ini`中
 之后应在项目目录下`map.json`文件中添加坐标，通过[坐标拾取器](https://lbs.amap.com/tools/picker)获得想要打卡点经纬度坐标,之后按照`map.json`的格式填入`map.json`中。

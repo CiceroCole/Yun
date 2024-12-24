@@ -122,15 +122,6 @@ class Login:
         url = "http://" + conf.get("Yun", "school_host") + "/login/appLogin"
         platform = conf.get("Yun", "platform")
         schoolid = conf.get("Yun", "school_id")
-
-        if username != conf.get("Login", "username"):
-            conf.set("Login", "username", username)
-            with open(config_file, "w", encoding="utf-8") as f:
-                conf.write(f)
-        if password != conf.get("Login", "password"):
-            conf.set("Login", "password", password)
-            with open(config_file, "w", encoding="utf-8") as f:
-                conf.write(f)
         # 如果部分配置为空则随机生成
         if iniDeviceId != "":
             DeviceId = iniDeviceId
@@ -156,6 +147,9 @@ class Login:
             platform = "ios"
         else:
             platform = "android"
+        conf.set("Yun", "platform", platform)
+        with open(config_file, "w", encoding="utf-8") as f:
+            conf.write(f)
         # md5签名结果用hex
         encryptData = (
             '''{"password":"'''
