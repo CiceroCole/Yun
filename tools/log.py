@@ -39,9 +39,6 @@ def create_logger(
         with open(log_file, "w") as f:
             f.write("")
     # 创建文件处理器并设置格式
-    if not os.path.exists(log_file):
-        with open(log_file, "w") as f:
-            f.write("")
     file_handler = RotatingFileHandler(
         log_file, maxBytes=max_bytes, backupCount=backup_count
     )
