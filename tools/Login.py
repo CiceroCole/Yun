@@ -1,5 +1,6 @@
 import random
 import time
+import os
 from gmssl import sm4
 import hashlib
 import base64
@@ -81,29 +82,32 @@ class Login:
     def main():
 
         utc = int(time.time())
-
+        main_path = "/".join(
+            os.path.dirname(os.path.abspath(__file__))
+            .replace("\\", "/")
+            .split("/")[:-1]
+        )
+        config_file = f"{main_path}/config.ini"
         # 读取ini
-        conf.read("./config.ini", encoding="utf-8")
+        conf.read(config_file, encoding="utf-8")
 
         # 判断[Login]是否存在
         if "Login" not in conf.sections():
             conf.add_section("Login")
             conf.set("Login", "username", "")
             conf.set("Login", "password", "")
-            with open("./config.ini", "w", encoding="utf-8") as f:
+            with open(config_file, "w", encoding="utf-8") as f:
                 conf.write(f)
 
         # 判断school_id是否在[Yun]中
         if "school_id" not in conf["Yun"]:
             conf.set("Yun", "school_id", "100")
-            with open("./config.ini", "w", encoding="utf-8") as f:
+            with open(config_file, "w", encoding="utf-8") as f:
                 conf.write(f)
 
         # 读取ini配置
-        username = conf.get("Login", "username") or input(
-            "未找到用户名，请输入用户名: "
-        )
-        password = conf.get("Login", "password") or input("未找到密码，请输入密码: ")
+        username = conf.get("Login", "username") or input("请输入用户账号: ")
+        password = conf.get("Login", "password") or input("请输入用户密码: ")
         iniDeviceId = conf.get("User", "device_id")
         iniDeviceName = conf.get("User", "device_name")
         iniuuid = conf.get("User", "uuid")
@@ -118,11 +122,11 @@ class Login:
 
         if username != conf.get("Login", "username"):
             conf.set("Login", "username", username)
-            with open("./config.ini", "w", encoding="utf-8") as f:
+            with open(config_file, "w", encoding="utf-8") as f:
                 conf.write(f)
         if password != conf.get("Login", "password"):
             conf.set("Login", "password", password)
-            with open("./config.ini", "w", encoding="utf-8") as f:
+            with open(config_file, "w", encoding="utf-8") as f:
                 conf.write(f)
         # 如果部分配置为空则随机生成
         if iniDeviceId != "":
@@ -138,14 +142,12 @@ class Login:
         if iniDeviceName != "":
             DeviceName = iniDeviceName
         else:
-            print("DeviceName为空 请输入希望使用的设备名\n留空则使用默认名")
-            DeviceName = input() or "Xiaomi"
+            DeviceName = input("请输入设备名称(可略): ") or "Xiaomi"
 
         if iniSysedition != "":
             sys_edition = iniSysedition
         else:
-            print("Sys_edition为空 请输入希望使用的设备名\n留空则使用14")
-            sys_edition = input() or "14"
+            sys_edition = input("请输入设备版本(可略): ") or "14"
 
         # md5签名结果用hex
         encryptData = (
@@ -194,7 +196,7 @@ class Login:
         result = response.text
         rawResponse = json.dumps(json.loads(result))
         if rawResponse.find("500") != -1:
-            print("返回数据报错 检查账号密码")
+            print("返回数据报错 检查账号密码!")
             exit()
         else:
             DecryptedData = json.loads(
@@ -202,20 +204,15 @@ class Login:
                     result, key, mode="ECB", padding="Pkcs7", input_format="Base64"
                 )
             )
-            print(DecryptedData)
+            # print(DecryptedData)
         try:
             token = DecryptedData["data"]["token"]
         except KeyError:
             print("登录失败，请检查账号密码是否正确")
             exit()
         if response.status_code == 200:
-            print(
-                "登录成功，本次登录尝试获得的token为："
-                + token
-                + "  本次生成的uuid为："
-                + uuid
-            )
-            print(
-                "!请注意! 使用脚本登录后会导致手机客户端登录失效\n请尽量减少手机登录次数，避免被识别为多设备登录代跑"
-            )
+            print(f"{'==='*10}登录成功!{'==='*10}\n")
+            print(f"{'>>>'*10} 请注意 {'<<<'*10}\n")
+            print("!!!使用脚本登录后会导致手机客户端登录失效!!!")
+            print("!!!请尽量减少手机登录次数，避免被识别为多设备登录代跑!!!")
         return token, DeviceId, DeviceName, uuid, sys_edition

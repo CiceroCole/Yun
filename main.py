@@ -137,27 +137,20 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
 
 
 def noTokenLogin():
-    print("config中token为空，是否尝试使用账号密码登录?[Y/N]: ")
-    LoginChoice = input()
-    if LoginChoice in "yY":
-        token, DeviceId, DeviceName, uuid, sys_edition = Login.main()
-        # TEST CONTENT
-        logger.info("是否保存本次登录产生的token和uuid?[Y/N]")
-        TokenWrite = input()
-        if TokenWrite in "yY":
-            config = configparser.ConfigParser()
-            config.read("config.ini", encoding="utf-8")
-            config.set("User", "token", token)
-            config.set("User", "uuid", uuid)
-            config.set("User", "device_id", DeviceId)
-            config.set("User", "device_name", DeviceName)
-            config.set("User", "sys_edition", sys_edition)
-            with open("config.ini", "w+", encoding="utf-8") as f:
-                config.write(f)
-        return token, DeviceId, DeviceName, uuid, sys_edition
-    elif LoginChoice in "nN":
-        logger.error("由于缺少token退出")
-        exit()
+    token, DeviceId, DeviceName, uuid, sys_edition = Login.main()
+    # TEST CONTENT
+    choice = input("是否保持登录状态?[Y/N]: ")
+    if choice in "Yy":
+        config = configparser.ConfigParser()
+        config.read("config.ini", encoding="utf-8")
+        config.set("User", "token", token)
+        config.set("User", "uuid", uuid)
+        config.set("User", "device_id", DeviceId)
+        config.set("User", "device_name", DeviceName)
+        config.set("User", "sys_edition", sys_edition)
+        with open("config.ini", "w+", encoding="utf-8") as f:
+            config.write(f)
+    return token, DeviceId, DeviceName, uuid, sys_edition
 
 
 class Yun_For_New:
