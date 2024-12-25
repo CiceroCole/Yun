@@ -82,21 +82,15 @@ class Login:
     def main():
 
         utc = int(time.time())
-        main_path = "/".join(
-            os.path.dirname(os.path.abspath(__file__))
-            .replace("\\", "/")
-            .split("/")[:-1]
-        )
-        config_file = f"{main_path}/config.ini"
         # 读取ini
-        conf.read(config_file, encoding="utf-8")
+        conf.read("./config.ini", encoding="utf-8")
 
         # 判断[Login]是否存在
         if "Login" not in conf.sections():
             conf.add_section("Login")
             conf.set("Login", "username", "")
             conf.set("Login", "password", "")
-            with open(config_file, "w", encoding="utf-8") as f:
+            with open("./config.ini", "w", encoding="utf-8") as f:
                 conf.write(f)
 
         # 判断school_id是否在[Yun]中
@@ -105,7 +99,7 @@ class Login:
             # conf.set("Yun", "school_id", "100")
             # 三联学院 125
             conf.set("Yun", "school_id", "125")
-            with open(config_file, "w", encoding="utf-8") as f:
+            with open("./config.ini", "w", encoding="utf-8") as f:
                 conf.write(f)
 
         # 读取ini配置
