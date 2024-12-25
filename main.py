@@ -81,15 +81,8 @@ def decrypt_sm2(info):
 
 
 def getsign(utc, uuid):
-    sb = (
-        "platform="
-        + platform
-        + "&utc="
-        + str(utc)
-        + "&uuid="
-        + str(uuid)
-        + "&appsecret="
-        + md5key
+    sb = "platform={}&utc={}&uuid={}&appsecret={}".format(
+        platform, str(utc), str(uuid), md5key
     )
     m = hashlib.md5()
     m.update(sb.encode("utf-8"))
@@ -175,7 +168,7 @@ class Yun_For_New:
         if not rawdata:
             logger.error("获取用户信息失败，请检查网络连接或稍后再试")
             print("获取用户信息失败，请检查网络连接或稍后再试")
-            exit()
+            sys.exit()
         data = json.loads(rawdata)["data"]["cralist"][0]
         self.raType = data["raType"]
         self.raId = data["id"]
@@ -317,7 +310,7 @@ class Yun_For_New:
             return
         if resp_json.get("errcode") == 10044:
             logger.error("今日高德地图API已达使用上限")
-            exit()
+            sys.exit()
         logger.info("高德地图响应: ")
         logger.info(get_format_log(resp_json))
         paths = resp_json["data"]["paths"]

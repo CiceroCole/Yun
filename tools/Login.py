@@ -1,6 +1,6 @@
 import random
 import time
-import os
+import sys
 from gmssl import sm4
 import hashlib
 import base64
@@ -109,8 +109,8 @@ class Login:
                 conf.write(f)
 
         # 读取ini配置
-        username = conf.get("Login", "username") or input("请输入用户账号: ")
-        password = conf.get("Login", "password") or input("请输入用户密码: ")
+        username = conf.get("Login", "username") or input("请输入用户账号(学院学号): ")
+        password = conf.get("Login", "password") or input("请输入用户密码(大于10位): ")
         iniDeviceId = conf.get("User", "device_id")
         iniDeviceName = conf.get("User", "device_name")
         iniuuid = conf.get("User", "uuid")
@@ -119,7 +119,8 @@ class Login:
         # 合工大登录账号专有链接
         # url = "http://" + conf.get("Yun", "school_host") + "/login/appLoginHGD"
         # 安徽三联学院登录账号链接
-        url = "http://" + conf.get("Yun", "school_host") + "/login/appLogin"
+        school_host = conf.get("Yun", "school_host")
+        url = "http://" + school_host + "/login/appLogin"
         platform = conf.get("Yun", "platform")
         schoolid = conf.get("Yun", "school_id")
         # 如果部分配置为空则随机生成
@@ -147,31 +148,29 @@ class Login:
             platform = "ios"
         else:
             platform = "android"
+
         conf.set("Yun", "platform", platform)
-        with open(config_file, "w", encoding="utf-8") as f:
-            conf.write(f)
         # md5签名结果用hex
-        encryptData = (
-            '''{"password":"'''
-            + password
-            + '''","schoolId":"'''
-            + schoolid
-            + '''","userName":"'''
-            + username
-            + """","type":"1"}"""
-        )
+        encryptData = str(
+            {
+                "userName": username,
+                "password": password,
+                "schoolId": schoolid,
+                "type": "1",
+            }
+        ).replace("'", '"')
+        print("encryptData: ", encryptData)
         # 签名结果
-        sign_data = (
-            "platform={}&utc={}&uuid={}&appsecret=pie0hDSfMRINRXc7s1UIXfkE".format(
-                platform, utc, uuid
-            )
+        AppSecret = "pie0hDSfMRINRXc7s1UIXfkE"
+        sign_data = "platform={}&utc={}&uuid={}&appsecret={}".format(
+            platform, utc, uuid, AppSecret
         )
         sign = Login.md5_encryption(sign_data)
+        print("sign: ", sign)
         key = "e2c9e15e84f93b81ee01bbd299a31563"
         content = Login.sm4_encrypt(
             encryptData, key, mode="ECB", padding="Pkcs7", output_format="Base64"
         )
-        content = content[:-24]
         headers = {
             "token": "",
             "isApp": "app",
@@ -183,9 +182,12 @@ class Login:
             "utc": str(utc),
             "sign": sign,
             "Content-Type": "application/json; charset=utf-8",
+            "Host": school_host,
+            "Connection": "Keep-Alive",
             "Accept-Encoding": "gzip",
             "User-Agent": "okhttp/3.12.0",
         }
+        content = content[:-24]
         # 请求体内容
         data = {
             "cipherKey": "BL+FHB2+eDL3gMtv1+2UljBFraZYQFOXkmyKrqyRAzcw1R4rsq1i8p1tEOXhZMHTlFWmR+i/mdf4DNi0hCUSoQ88JMTUSUIkgU0+mowqRlVc/n/qYGqXERFqyMqn+GANUvWU65+F6/RLhpAB3AiYSJOY/RplvXmRvQ==",
@@ -195,10 +197,11 @@ class Login:
         response = requests.post(url, headers=headers, json=data)
         # 打印响应内容
         result = response.text
+        # print(result)
         rawResponse = json.dumps(json.loads(result))
         if rawResponse.find("500") != -1:
             print("返回数据报错 检查账号密码!")
-            exit()
+            sys.exit()
         else:
             DecryptedData = json.loads(
                 Login.sm4_decrypt(
@@ -210,8 +213,12 @@ class Login:
             token = DecryptedData["data"]["token"]
         except KeyError:
             print("登录失败，请检查账号密码是否正确")
-            exit()
+            sys.exit()
         if response.status_code == 200:
+            conf.set("Login", "username", username)
+            conf.set("Login", "password", password)
+            with open("./config.ini", "w", encoding="utf-8") as f:
+                conf.write(f)
             print(f"{'==='*10}登录成功!{'==='*10}\n")
             print(f"{'>>>'*10} 请注意 {'<<<'*10}\n")
             print("!!!使用脚本登录后会导致手机客户端登录失效!!!")
