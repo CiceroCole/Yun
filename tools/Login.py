@@ -103,47 +103,30 @@ class Login:
                 conf.write(f)
 
         # 读取ini配置
-        username = conf.get("Login", "username") or input("请输入用户账号(学院学号): ")
-        password = conf.get("Login", "password") or input("请输入用户密码(大于10位): ")
-        iniDeviceId = conf.get("User", "device_id")
-        iniDeviceName = conf.get("User", "device_name")
-        iniuuid = conf.get("User", "uuid")
-        iniSysedition = conf.get("User", "sys_edition")
+        if conf.get("Login", "username"):
+            username = conf.get("Login", "username")
+            password = conf.get("Login", "password")
+        else:
+            username = input("请输入用户账号: ")
+            password = input("请输入用户密码: ")
+
+        DeviceId = conf.get("User", "device_id") or str(
+            random.randint(10e14, 10e15 - 1)
+        )
+        DeviceName = conf.get("User", "device_name") or random.choice(
+            ["Xiaomi", "Huawei", "Vivo", "Oppo", "Meizu", "Samsung", "Honor"]
+        )
+        uuid = conf.get("User", "uuid") or DeviceId
+        sys_edition = conf.get("User", "sys_edition") or str(random.randint(10, 14))
         appedition = conf.get("Yun", "app_edition")
         # 合工大登录账号专有链接
         # url = "http://" + conf.get("Yun", "school_host") + "/login/appLoginHGD"
         # 安徽三联学院登录账号链接
         school_host = conf.get("Yun", "school_host")
         url = "http://" + school_host + "/login/appLogin"
-        platform = conf.get("Yun", "platform")
+        platform = conf.get("Yun", "platform") or "android"
         schoolid = conf.get("Yun", "school_id")
         # 如果部分配置为空则随机生成
-        if iniDeviceId != "":
-            DeviceId = iniDeviceId
-        else:
-            DeviceId = str(random.randint(1000000000000000, 9999999999999999))
-
-        if iniuuid != "":
-            uuid = iniuuid
-        else:
-            uuid = DeviceId
-
-        if iniDeviceName != "":
-            DeviceName = iniDeviceName
-        else:
-            DeviceName = input("请输入设备名称(可略): ") or "Xiaomi"
-
-        if iniSysedition != "":
-            sys_edition = iniSysedition
-        else:
-            sys_edition = input("请输入设备版本(可略): ") or "14"
-
-        if DeviceName.lower() == "iphone":
-            platform = "ios"
-        else:
-            platform = "android"
-
-        conf.set("Yun", "platform", platform)
         # md5签名结果用hex
         encryptData = str(
             {
@@ -160,7 +143,6 @@ class Login:
             platform, utc, uuid, AppSecret
         )
         sign = Login.md5_encryption(sign_data)
-        print("sign: ", sign)
         key = "e2c9e15e84f93b81ee01bbd299a31563"
         content = Login.sm4_encrypt(
             encryptData, key, mode="ECB", padding="Pkcs7", output_format="Base64"
@@ -188,7 +170,11 @@ class Login:
             "content": content,
         }
         # 发送POST请求
-        response = requests.post(url, headers=headers, json=data)
+        try:
+            response = requests.post(url, headers=headers, json=data)
+        except requests.exceptions.ConnectionErro as e:
+            print("网络异常，请检查网络连接")
+            return False
         # 打印响应内容
         result = response.text
         # print(result)
@@ -207,7 +193,7 @@ class Login:
             token = DecryptedData["data"]["token"]
         except KeyError:
             print("登录失败，请检查账号密码是否正确")
-            sys.exit()
+            sys.exit(0)
         if response.status_code == 200:
             conf.set("Login", "username", username)
             conf.set("Login", "password", password)

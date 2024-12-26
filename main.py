@@ -116,10 +116,10 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
         "cipherKey": CipherKeyEncrypted,
         "content": encrypt_sm4(data, b64decode(default_key), isBytes=isBytes),
     }
-    req = requests.post(
-        url=url, data=json.dumps(data_json), headers=headers
-    )  # data进行了加密
     try:
+        req = requests.post(
+            url=url, data=json.dumps(data_json), headers=headers
+        )  # data进行了加密
         result = decrypt_sm4(req.text, b64decode(default_key)).decode("utf-8")
         logger.debug(f"请求地址: {url}")
         logger.debug(f"请求响应: ")
@@ -130,6 +130,11 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
             logger.warning("远程服务器服务异常!")
         logger.error(f"请求异常报错: {e}")
         logger.error(f"请求异常响应: {req.text}")
+        return False
+    except requests.exceptions.ConnectionErro as e:
+        logger.error(f"网络异常，请检查网络连接")
+        logger.error(f"请求异常报错: {e}")
+        print("网络异常，请检查网络连接")
         return False
 
 
@@ -165,10 +170,6 @@ class Yun_For_New:
 
     def __init__(self, auto_generate_task=False):
         rawdata = default_post("/run/getHomeRunInfo", "")
-        if not rawdata:
-            logger.error("获取用户信息失败，请检查网络连接或稍后再试")
-            print("获取用户信息失败，请检查网络连接或稍后再试")
-            sys.exit()
         data = json.loads(rawdata)["data"]["cralist"][0]
         self.raType = data["raType"]
         self.raId = data["id"]
@@ -310,7 +311,9 @@ class Yun_For_New:
             return
         if resp_json.get("errcode") == 10044:
             logger.error("今日高德地图API已达使用上限")
-            sys.exit()
+            print(">>>" * 10 + "今日高德地图API已达使用上限" + "<<<" * 10)
+            time.sleep(5)
+            sys.exit(0)
         logger.info("高德地图响应: ")
         logger.info(get_format_log(resp_json))
         paths = resp_json["data"]["paths"]
@@ -429,8 +432,10 @@ class Yun_For_New:
                 elif "由于当前时间不在学校规定的跑步时间内" in warnContent:
                     info_ = "当前不在您的学校规定的跑步时间段内"
                 print(">>" * 10 + info_ + "<<" * 10)
+                print("\a")
                 logger.error(f'云运动任务创建失败！: {jdata["warnContent"]}')
-                exit(0)
+                time.sleep(5)
+                sys.exit(0)
             self.recordStartTime = jdata["recordStartTime"]
             self.crsRunRecordId = jdata["id"]
             self.userName = jdata["studentId"]
@@ -491,13 +496,16 @@ class Yun_For_New:
         if not random_choose:
             print("检测到可用表格:")
             for i, file in enumerate(files):
-                print(f"({i}) : {file}")
+                print(f"({i + 1}) : {file}")
             choice = int(input("选择(输入序号,-1随机): "))
+            if choice > len(files):
+                print("输入错误，请重新输入")
+                return self.do_by_points_map(path, random_choose)
             if choice == -1:
                 file = os.path.join(path, random.choice(files)).replace("\\", "/")
                 print("随机选择: " + file)
             else:
-                file = os.path.join(path, files[choice]).replace("\\", "/")
+                file = os.path.join(path, files[choice - 1]).replace("\\", "/")
         else:
             file = os.path.join(path, random.choice(files)).replace("\\", "/")
             print("随机选择: " + file)
@@ -619,6 +627,9 @@ class Yun_For_New:
         try:
             if eval(resp) == {"code": 200, "msg": "恭喜你当前跑步成绩合格，加油^_^"}:
                 print(("=" * 10) + "本次运动成功结束！" + ("=" * 10))
+                print("\a")
+                time.sleep(5)
+                sys.exit(0)
         except Exception as e:
             logger.error(e)
             logger.error("发送失败！")
@@ -627,8 +638,6 @@ class Yun_For_New:
 if __name__ == "__main__":
     printLog = False
     if "--printLog" in sys.argv:
-        printLog = True
-    elif input("是否打印日志?[Y/N]: ") in "Yy":
         printLog = True
     main_path = os.path.dirname(os.path.abspath(__file__))
     log_file_name = f"{datetime.datetime.now().strftime('%Y-%m-%d')}.log"
@@ -696,7 +705,7 @@ if __name__ == "__main__":
             with open(cfg_path, "w+", encoding="utf-8") as f:
                 conf.write(f)
         # config app版本检查 当前可用3.4.5
-
+    conf.read(cfg_path, encoding="utf-8")
     logger.info("您的信息为: ")
     logger.info("Token: ".ljust(15) + my_token)
     logger.info("uuid: ".ljust(15) + my_uuid)
@@ -721,40 +730,36 @@ if __name__ == "__main__":
             )
         else:
             print("===" * 10, "退出程序", "===" * 10)
+            time.sleep(5)
             sys.exit(0)
     if args.auto_run:
-        log_table = "y"
+        log_table = "1"
     else:
-        print("(1) 打表模式 : 固定路线无需高德地图key")
-        print("(2) 导航模式 : 根据选点与高德地图key自动生成路线")
-        print("(3) 快速模式 : 直接提交路线(不建议)")
-        print("(4) 退出程序")
-        log_table = input("请输入序号选择模式: ")
-    if log_table == "1":
-        if not args.auto_run:
-            path = os.path.abspath("./tasks")
-            isDrift = input("是否为数据添加漂移[y/n]: ")
-            if isDrift in "yY":
-                driftChoice = True
-            else:
-                driftChoice = False
-            Yun = Yun_For_New(auto_generate_task=False)
-            Yun.start()
-            Yun.do_by_points_map(path=path, isDrift=driftChoice)
-            Yun.finish_by_points_map()
-        else:
-            path = os.path.abspath("./tasks")
-            Yun = Yun_For_New(auto_generate_task=False)
-            Yun.start()
-            Yun.do_by_points_map(path=path, random_choose=True, isDrift=args.drift)
-            Yun.finish_by_points_map()
-    if log_table == "2":
-        Yun = Yun_For_New(auto_generate_task=True)
-        print("起始点: [" + Yun.my_point + "]")
-        Yun.start()
-        Yun.do()
-        Yun.finish()
-    if log_table == "3":
-        Yun = Yun_For_New(auto_generate_task=True)
-        Yun.start()
-        Yun.finish()
+        while True:
+            print("(1) 打表模式 : (建议选择)固定路线无需高德地图key")
+            print("(2) 导航模式 : 根据选点与高德地图key自动生成路线")
+            print("(3) 快速模式 : (不建议建议选择)直接提交路线")
+            print("(4) 退出程序")
+            log_table = input("请输入序号选择模式: ")
+            if log_table == "1":
+                driftChoice = args.drift if args.auto_run else True
+                random_choose = True if args.auto_run else False
+                Yun = Yun_For_New(auto_generate_task=False)
+                Yun.start()
+                Yun.do_by_points_map(
+                    path="./tasks", random_choose=True, isDrift=driftChoice
+                )
+                Yun.finish_by_points_map()
+            if log_table == "2":
+                Yun = Yun_For_New(auto_generate_task=True)
+                Yun.start()
+                Yun.do()
+                Yun.finish()
+            if log_table == "3":
+                Yun = Yun_For_New(auto_generate_task=True)
+                Yun.start()
+                Yun.finish()
+            if log_table == "4":
+                print("===" * 10, "退出程序", "===" * 10)
+                time.sleep(5)
+                sys.exit(0)

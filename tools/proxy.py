@@ -104,24 +104,9 @@ fields_to_keep = [
 
 class Yun:
     saved = False
-    count = 0
 
     def __init__(self):
-        self.count = self.get_tasks_file_count()
-
-    def get_tasks_file_count(self):
-        try:
-            file_count = len(
-                [
-                    name
-                    for name in os.listdir(tasks_path)
-                    if os.path.isfile(os.path.join(tasks_path, name))
-                ]
-            )
-        except FileNotFoundError:
-            os.mkdir(tasks_path)
-            file_count = 0
-        return file_count
+        pass
 
     def request(s, flow: mitmproxy.http.HTTPFlow) -> None:
         if default_url not in flow.request.pretty_url:
@@ -273,12 +258,22 @@ class Yun:
                     key: value for key, value in data.items() if key in fields_to_keep
                 }
                 tasklist_json["data"] = filtered_data
-                print(f"已经保存任务文件 : {tasks_path}/tasklist_{self.count}.json")
-                with open(
-                    f"{tasks_path}/tasklist_{self.count}.json", "w", encoding="utf-8"
-                ) as file:
+                print(">>>" * 10, "!!!获取到运动任务!!!", "<<<" * 10)
+                print("运动任务信息: ")
+                print("运动里程: ", str(data["recordMileage"]) + "km")
+                print("运动速度: ", str(data["recodePace"]) + "km/h")
+                print("运动步频: ", str({data["recodeCadence"]}) + "rpm")
+                duration = int(data["duration"] / 60 * 100) / 100
+                print("运动时长: ", str(duration) + "分钟")
+                task_file_name = (
+                    input("请输入要保存的任务文件名(不保存输入回车跳过: ") + ".json"
+                )
+                if not task_file_name:
+                    return
+                save_path = os.path.join(tasks_path, task_file_name)
+                print(f"已经保存任务文件 :", save_path)
+                with open(save_path, "w", encoding="utf-8") as file:
                     json.dump(tasklist_json, file, ensure_ascii=False, indent=4)
-                self.count = self.count + 1
         else:
             flow.live = False
 

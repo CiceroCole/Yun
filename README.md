@@ -55,7 +55,7 @@
    ```
 - 之后若是没有意外退出并显示以下信息:
    ```   
-   config中token为空，是否尝试使用账号密码登录?[Y/N]: 
+   请输入用户账号: 
    ```
    则成功运行该脚本
 
@@ -64,11 +64,14 @@
 #### 账号密码登录
 **在运行后根据输入提示输入对应信息即可登录**
 ```
-请输入用户账号(学院学号): 你的云运动账号(学号)
-请输入用户密码(大于10位): 你的云运动密码(务必设置密码大于10位，不然会登录不上(不知道为什么))
-请输入设备名称(可略): 输入你的设备名称，比如Xiaomi,IPhone...回车省略(默认的设备型号为Xiaomi)
-请输入设备版本(可略): 输入你的设备版本, 回车省略(默认的设备版本为 14)
+请输入用户账号: 你的云运动账号(一般来说时学院学号)
+请输入用户密码: 你的云运动密码
 ```
+之后登录成功会显示登录成功的信息，会出现以下信息
+```
+是否保持登录状态?[Y/N]: 
+```
+输入`Y`并回车即可保留登录状态，若输入`N`则只有本次程序临时有效，若想永久有效需重新登录保留登录状态。
 #### token登录
 > 此部分的教程改编于[Zirconium233](https://github.com/Zirconium233 "Zirconium233")的[yunForNewVersion](https://github.com/Zirconium233/yunForNewVersion "yunForNewVersion")
 
@@ -210,38 +213,35 @@
 1. **下载安装程序**
    - 访问 [mitmproxy](https://mitmproxy.org/) 
    - 下载 mitmproxy 安装包并安装
-   - 访问 [Oracle JDK 17 下载页面](https://www.oracle.com/java/technologies/javase-jdk17-downloads.html)。
-   - 下载适用于 Windows 的 JDK 17 安装程序
-   （通常是 `.exe` 文件）。
+   - 访问 [Opne JDK 23 下载页面](https://jdk.java.net/23/)。
+   - 下载适用于 Windows 的 JDK 23 压缩包文件
+   - (Windows / x64	[zip](https://download.java.net/java/GA/jdk23.0.1/c28985cbf10d4e648e4004050f8781aa/11/GPL/openjdk-23.0.1_windows-x64_bin.zip) (sha256)	209134637)
+   - 解压压缩包至您想安装 JDK 的文件夹。（例如 `C:\Program Files\Java\`）
 
-2. **运行安装程序**
-   - 找到下载的 `.exe` 文件并双击运行。
-   - 按照安装向导的指示完成安装过程。
-
-3. **配置环境变量**
+2. **配置环境变量**
    - 打开“控制面板” -> “系统和安全” -> “系统” -> “高级系统设置”。
    - 点击“环境变量”按钮。
    - 在“系统变量”部分，找到 `Path` 变量并点击“编辑”。
-   - 添加 JDK 的 `bin` 目录路径（例如 `C:\Program Files\Java\jdk-17\bin`）。
+   - 添加 JDK 的 `bin` 目录路径（例如 `C:\Program Files\Java\jdk-23.0.1\bin`）。
    - 确认所有对话框以保存更改。
 
-4. **验证安装**
+3. **验证安装**
    - 打开命令提示符（Command Prompt），输入以下命令：
      ```
      java -version
      javac -version
      ```
    - 如果安装成功，将会显示已安装的 Java 和 Java 编译器版本号。
-   输入以下命令
+   - 输入以下命令
       ```
       mitmproxy
       ```
-      如果安装成功，将会显示类似以下的信息并弹出网页:
+   - 如果安装成功，将会显示类似以下的信息并弹出网页:
       ```
       [17:48:16.304] HTTP(S) proxy listening at *:8080.
       [17:48:16.307] Web server listening at http://127.0.0.   1:8081/
       ```
-      按下`Ctrl+C`退出代理服务
+      > 按下`Ctrl+C`可以退出代理服务
 
 **启动代理获取手机云运动app的运动数据**
 
