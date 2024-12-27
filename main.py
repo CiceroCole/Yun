@@ -521,13 +521,13 @@ class Yun_For_New:
                 return self.do_by_points_map(path, random_choose)
             if choice == -1:
                 file = os.path.join(path, random.choice(files)).replace("\\", "/")
-                print("随机任务: ", ".".join(file.split(".")[:-1]))
+                print("随机任务: ", os.path.splitext(os.path.basename(file))[0])
             else:
                 file = os.path.join(path, files[choice - 1]).replace("\\", "/")
-                print("选择任务: ", ".".join(file.split(".")[:-1]))
+                print("选择任务: ", os.path.splitext(os.path.basename(file))[0])
         else:
             file = os.path.join(path, random.choice(files)).replace("\\", "/")
-            print("选择任务: ", ".".join(file.split(".")[:-1]))
+            print("随机任务: ", os.path.splitext(os.path.basename(file))[0])
         print(">>>" * 10 + "开始跑步" + "<<<" * 10)
         with open(file, "r", encoding="utf-8") as f:
             self.task_map = json.loads(f.read())
