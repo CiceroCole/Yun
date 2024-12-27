@@ -501,7 +501,7 @@ class Yun_For_New:
             for f in files:
                 with open(os.path.join(path, f), "r", encoding="utf-8") as jf:
                     data = json.loads(jf.read())["data"]
-                print("序号: ", i_)
+                print("序号: ", i_ + 1)
                 print("运动任务信息: ")
                 print("名称: ", ".".join(f.split(".")[:-1]))
                 print("里程: ", str(data["recordMileage"]).ljust(10) + "千米")
