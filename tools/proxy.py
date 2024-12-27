@@ -69,7 +69,7 @@ def decode(key_enc, data, use_gzip):
     stdout, stderr = process.communicate()  # 等待子进程结束并获取输出
     # 打印子进程的标准输出和标准错误
     stdout = stdout.decode()
-    with open("./DecyrptOut.txt", "w") as f:
+    with open("./DecyrptOut.log", "w") as f:
         f.write(stdout)
         f.write(stderr.decode())
         # 获取子进程的返回码
@@ -267,7 +267,7 @@ class Yun:
                 task_file_name = input("请输入要保存的任务文件名(不保存输入回车跳过): ")
                 if not task_file_name:
                     return
-                save_path = os.path.join(tasks_path, task_file_name)
+                save_path = os.path.join(tasks_path, task_file_name + ".json")
                 while os.path.exists(save_path):
                     task_file_name = input(
                         "文件名已存在，请重新输入要保存的任务文件名: "
