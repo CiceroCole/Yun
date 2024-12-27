@@ -7,6 +7,7 @@
 > 以下只做简要使用介绍，若想查看细节请查看原作者的[Zirconium233](https://github.com/Zirconium233 "Zirconium233")的[yunForNewVersion](https://github.com/Zirconium233/yunForNewVersion "yunForNewVersion")项目
 
 ### 1.安装Python及项目依赖
+> 可在[release](https://github.com/CiceroCole/Yun/releases)下载本项目的安装程序，打包集成了Python 3.10.0b1环境
 ### 在 Windows 上安装 Python
 1. **下载安装程序**
    - 访问 [Python 官方网站](https://www.python.org/downloads/windows/)。
