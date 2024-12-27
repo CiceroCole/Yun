@@ -17,6 +17,7 @@ from typing import List, Dict
 from tools.Login import Login
 from tools.drift import add_drift
 from tools.log import create_logger
+from tools.timer import timer
 from base64 import b64encode, b64decode
 from gmssl.sm4 import CryptSM4, SM4_ENCRYPT, SM4_DECRYPT
 

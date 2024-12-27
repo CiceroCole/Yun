@@ -136,7 +136,7 @@ class Login:
                 "type": "1",
             }
         ).replace("'", '"')
-        print("encryptData: ", encryptData)
+        # print("encryptData: ", encryptData)
         # 签名结果
         AppSecret = "pie0hDSfMRINRXc7s1UIXfkE"
         sign_data = "platform={}&utc={}&uuid={}&appsecret={}".format(

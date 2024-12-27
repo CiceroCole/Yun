@@ -68,14 +68,13 @@ def decode(key_enc, data, use_gzip):
     # 从子进程的标准输出和标准错误读取数据
     stdout, stderr = process.communicate()  # 等待子进程结束并获取输出
     # 打印子进程的标准输出和标准错误
-    print("Standard Output:")
     stdout = stdout.decode()
-    print(stdout)  # 将字节解码为字符串
-    print("Standard Error:")
-    print(stderr.decode())
-    # 获取子进程的返回码
-    return_code = process.returncode
-    print(f"Return Code: {return_code}")
+    with open("./DecyrptOut.txt", "w") as f:
+        f.write(stdout)
+        f.write(stderr.decode())
+        # 获取子进程的返回码
+        return_code = process.returncode
+        f.write(str(return_code))
     output = stdout.split("\n")
     # print(output)
     decrypted_key = output[0]
@@ -259,18 +258,23 @@ class Yun:
                 }
                 tasklist_json["data"] = filtered_data
                 print(">>>" * 10, "!!!获取到运动任务!!!", "<<<" * 10)
-                print("运动任务信息: ")
-                print("运动里程: ", str(data["recordMileage"]) + "km")
-                print("运动速度: ", str(data["recodePace"]) + "km/h")
-                print("运动步频: ", str({data["recodeCadence"]}) + "rpm")
+                print("里程: ", str(data["recordMileage"]).ljust(10) + "千米")
+                print("速度: ", str(data["recodePace"]).ljust(10) + "千米每时")
+                print("步频: ", str(data["recodeCadence"]).ljust(10) + "每分钟步数")
                 duration = int(data["duration"] / 60 * 100) / 100
-                print("运动时长: ", str(duration) + "分钟")
-                task_file_name = (
-                    input("请输入要保存的任务文件名(不保存输入回车跳过: ") + ".json"
-                )
+                print("时长: ", str(duration).ljust(10) + "分钟")
+                print("===" * 20)
+                task_file_name = input("请输入要保存的任务文件名(不保存输入回车跳过): ")
                 if not task_file_name:
                     return
                 save_path = os.path.join(tasks_path, task_file_name)
+                while os.path.exists(save_path):
+                    task_file_name = input(
+                        "文件名已存在，请重新输入要保存的任务文件名: "
+                    )
+                    save_path = os.path.join(tasks_path, task_file_name + ".json")
+                if not task_file_name:
+                    return
                 print(f"已经保存任务文件 :", save_path)
                 with open(save_path, "w", encoding="utf-8") as file:
                     json.dump(tasklist_json, file, ensure_ascii=False, indent=4)
