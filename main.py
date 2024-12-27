@@ -18,6 +18,14 @@ def get_format_log(message):
     return message_stream.getvalue()
 
 
+def exit_program(msg: str = ""):
+    if msg:
+        print(">>>" * 10, msg, "<<<" * 10)
+    print("\a")
+    time.sleep(5)
+    sys.exit(0)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="云运动自动跑步脚本")
     parser.add_argument(
@@ -128,14 +136,17 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
     except Exception as e:
         if eval(req.text)["code"] == 500:
             logger.warning("远程服务器服务异常!")
+            exit_program("远程服务器服务异常!")
+        if eval(req.text)["code"] == 401:
+            Logout()
+            exit_program("登录失效，请重新登录!")
         logger.error(f"请求异常报错: {e}")
         logger.error(f"请求异常响应: {req.text}")
         return False
     except requests.exceptions.ConnectionErro as e:
         logger.error(f"网络异常，请检查网络连接")
         logger.error(f"请求异常报错: {e}")
-        print("网络异常，请检查网络连接")
-        return False
+        exit_program("网络异常，请检查网络连接")
 
 
 def Logout():
@@ -311,10 +322,7 @@ class Yun_For_New:
             return
         if resp_json.get("errcode") == 10044:
             logger.error("今日高德地图API已达使用上限")
-            print(">>>" * 10 + "今日高德地图API已达使用上限" + "<<<" * 10)
-            print("\a")
-            time.sleep(5)
-            sys.exit(0)
+            exit_program("今日高德地图API已达使用上限")
         logger.info("高德地图响应: ")
         logger.info(get_format_log(resp_json))
         paths = resp_json["data"]["paths"]
@@ -432,11 +440,8 @@ class Yun_For_New:
                     info_ = "您的今日跑步任务已完成"
                 if "由于当前时间不在学校规定的跑步时间内" in warnContent:
                     info_ = "当前不在您的学校规定的跑步时间段内"
-                print(">>" * 10 + info_ + "<<" * 10)
                 logger.error(f'云运动任务创建失败！: {jdata["warnContent"]}')
-                print("\a")
-                time.sleep(5)
-                sys.exit(0)
+                exit_program(info_)
             self.recordStartTime = jdata["recordStartTime"]
             self.crsRunRecordId = jdata["id"]
             self.userName = jdata["studentId"]
@@ -617,10 +622,7 @@ class Yun_For_New:
         resp = default_post("/run/finish", json.dumps(data))
         try:
             if eval(resp) == {"code": 200, "msg": "恭喜你当前跑步成绩合格，加油^_^"}:
-                print(("===" * 10) + "本次运动成功结束！" + ("===" * 10))
-                print("\a")
-                time.sleep(5)
-                sys.exit(0)
+                exit_program("本次运动成功结束！")
         except Exception as e:
             logger.error(e)
             logger.error("发送失败！")
@@ -649,10 +651,7 @@ class Yun_For_New:
         resp = default_post("/run/finish", json.dumps(data))
         try:
             if eval(resp) == {"code": 200, "msg": "恭喜你当前跑步成绩合格，加油^_^"}:
-                print(("=" * 10) + "本次运动成功结束！" + ("=" * 10))
-                print("\a")
-                time.sleep(5)
-                sys.exit(0)
+                exit_program("本次运动成功结束！")
         except Exception as e:
             logger.error(e)
             logger.error("发送失败！")
@@ -749,10 +748,7 @@ if __name__ == "__main__":
                 noTokenLogin()
             )
         else:
-            print("===" * 10, "退出程序", "===" * 10)
-            print("\a")
-            time.sleep(5)
-            sys.exit(0)
+            exit_program("退出程序")
     else:
         while True:
             if not args.auto_run:
@@ -791,7 +787,4 @@ if __name__ == "__main__":
                     )
                     Yun.finish_by_points_map()
             if log_table == "4":
-                print("===" * 10, "退出程序", "===" * 10)
-                print("\a")
-                time.sleep(5)
-                sys.exit(0)
+                exit_program("退出程序")
