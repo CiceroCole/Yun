@@ -39,4 +39,5 @@ def timer():
         countdown = format_timedelta(target_time - datetime.now())
         print("\r倒计时: {0:2d}时{1:2d}分{2:2d}秒".format(*(countdown[1:])), end="")
         time.sleep(1)
+    print("")
     return True
