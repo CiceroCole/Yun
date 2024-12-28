@@ -130,6 +130,8 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
         )  # data进行了加密
         result = decrypt_sm4(req.text, b64decode(default_key)).decode("utf-8")
         logger.debug(f"请求地址: {url}")
+        logger.debug(f"请求数据: ")
+        logger.debug(get_format_log(data))
         logger.debug(f"请求响应: ")
         logger.debug(get_format_log(eval(result)))
         return result
@@ -141,11 +143,12 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
         logger.error(f"请求异常报错: {e}")
         logger.error(f"请求异常响应: {req.text}")
         if eval(req.text)["code"] == 500:
-            logger.warning("远程服务器服务异常!")
-            exit_msg("远程服务器服务异常!")
+            logger.error("远程服务器服务异常!(500)")
+            exit_msg("远程服务器服务异常!(500)")
         if eval(req.text)["code"] == 401:
             Logout()
-            exit_msg("登录失效，请重新登录!")
+            logger.error("登录失效，请重新登录!(401)")
+            exit_msg("登录失效，请重新登录!(401)")
         return False
 
 
@@ -427,7 +430,7 @@ class Yun_For_New:
         self.task_list.append({"originPoint": point, "points": split_points})
 
     def start(self):
-        default_post("/run/crsReocordInfo", "")
+        # default_post("/run/crsReocordInfo", "")
         data = {"raRunArea": self.raRunArea, "raType": self.raType, "raId": self.raId}
         j: dict = json.loads(default_post("/run/start", json.dumps(data)))
         # 发送开始请求
@@ -518,24 +521,22 @@ class Yun_For_New:
                 i_ += 1
             try:
                 choice = int(input("选择(输入序号,-1随机): "))
+                if choice == -1:
+                    file = os.path.join(path, random.choice(files)).replace("\\", "/")
+                else:
+                    file = os.path.join(path, files[choice - 1]).replace("\\", "/")
             except ValueError:
-                print("输入错误，请重新输入")
-                return self.do_by_points_map(path, random_choose)
-            if choice > len(files):
-                print("输入错误，请重新输入")
-                return self.do_by_points_map(path, random_choose)
-            if choice == -1:
+                print("输入错误，默认随机选择!")
                 file = os.path.join(path, random.choice(files)).replace("\\", "/")
-                print("随机任务: ", os.path.splitext(os.path.basename(file))[0])
-            else:
-                file = os.path.join(path, files[choice - 1]).replace("\\", "/")
-                print("选择任务: ", os.path.splitext(os.path.basename(file))[0])
         else:
             file = os.path.join(path, random.choice(files)).replace("\\", "/")
-            print("随机任务: ", os.path.splitext(os.path.basename(file))[0])
-        print(">>>" * 10 + "开始跑步" + "<<<" * 10)
+        print("当前任务: ", os.path.splitext(os.path.basename(file))[0])
         with open(file, "r", encoding="utf-8") as f:
             self.task_map = json.loads(f.read())
+        duration = str(int(self.task_map["data"]["duration"] / 60 * 100) / 100)
+        print("时长: ", duration, "分钟")
+        print("为防止被检测,将会对任务添加微小随机改变,实际任务会有些许不同")
+        print(">>>" * 10 + "开始跑步" + "<<<" * 10)
         if isDrift:
             self.task_map = add_drift(self.task_map)
         points = []
@@ -734,6 +735,7 @@ if __name__ == "__main__":
     logger.info("utc: ".ljust(15) + my_utc)
     logger.info("sign: ".ljust(15) + my_sign)
     logger.info("map_key: ".ljust(15) + my_key)
+    logger.info("sys_edition: ".ljust(15) + my_sys_edition)
 
     username = conf.get("Login", "username")
     if username:

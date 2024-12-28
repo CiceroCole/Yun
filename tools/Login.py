@@ -1,6 +1,7 @@
 import random
 import time
 import sys
+import string
 from gmssl import sm4
 import hashlib
 import base64
@@ -113,9 +114,11 @@ class Login:
         DeviceId = conf.get("User", "device_id") or str(
             random.randint(10e14, 10e15 - 1)
         )
-        DeviceName = conf.get("User", "device_name") or random.choice(
+        random_id = "".join(random.sample(string.ascii_uppercase + string.digits, 10))
+        random_name = random.choice(
             ["Xiaomi", "Huawei", "Vivo", "Oppo", "Meizu", "Samsung", "Honor"]
-        )
+        ) + "({})".format(random_id)
+        DeviceName = conf.get("User", "device_name") or random_name
         uuid = conf.get("User", "uuid") or DeviceId
         sys_edition = conf.get("User", "sys_edition") or str(random.randint(10, 14))
         appedition = conf.get("Yun", "app_edition")
