@@ -117,9 +117,7 @@ class Login:
             "device_id",  # 设备id
             "map_key",  # map_key是高德地图的开发者密钥
             "device_name",  # 手机名称
-            "utc",  # 时间戳
             "uuid",  # uuid
-            "sign",  # sign
             "sys_edition",  # 手机操作系统版本
             "username",  # 用户名
             "password",  # 密码

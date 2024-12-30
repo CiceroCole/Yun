@@ -100,34 +100,27 @@ def getsign(utc, uuid):
 def default_post(
     router: str,
     data: bytes | str,
-    headers: dict = None,
-    host: str = None,
     isBytes: bool = False,
-    gen_sign: bool = True,
 ) -> dict | None:
-    host = host if host else yun_info["school_host"]
-    url = "http://" + host + router
-    if gen_sign:
-        utc = str(int(time.time()))
-        sign = getsign(utc, user_info["uuid"])
-    else:
-        sign = user_info["sign"]
-    if headers is None:
-        headers = {
-            "token": user_info["token"],
-            "isApp": "app",
-            "device_id": user_info["device_id"],
-            "deviceName": user_info["device_name"],
-            "version": yun_info["app_edition"],
-            "platform": yun_info["platform"],
-            "Content-Type": "application/json; charset=utf-8",
-            "Connection": "Keep-Alive",
-            "Accept-Encoding": "gzip",
-            "User-Agent": "okhttp/3.12.0",
-            "utc": user_info["utc"],
-            "uuid": user_info["uuid"],
-            "sign": sign,
-        }
+    url = "http://" + yun_info["school_host"] + router
+    utc = str(int(time.time()))
+    sign = getsign(utc, user_info["uuid"])
+    headers = {
+        "token": user_info["token"],
+        "isApp": "app",
+        "device_id": user_info["device_id"],
+        "deviceName": user_info["device_name"],
+        "version": yun_info["app_edition"],
+        "platform": yun_info["platform"],
+        "Content-Type": "application/json; charset=utf-8",
+        "Connection": "Keep-Alive",
+        "Accept-Encoding": "gzip",
+        "User-Agent": "okhttp/3.12.0",
+        "utc": utc,
+        "Host": yun_info["school_host"],
+        "uuid": user_info["uuid"],
+        "sign": sign,
+    }
     data_json = {
         "cipherKey": yun_info["cipherkeyencrypted"],
         "content": encrypt_sm4(data, b64decode(yun_info["cipherkey"]), isBytes=isBytes),
@@ -136,9 +129,12 @@ def default_post(
         req = requests.post(
             url=url, data=json.dumps(data_json), headers=headers
         )  # data进行了加密
+        i = req.text.find('"code"')
+        if i != -1:
+            status_code = str(json.loads(req.text)["code"])
         Byte_result = decrypt_sm4(req.text, b64decode(yun_info["cipherkey"]))
         result = Byte_result.decode("utf-8")
-        status_code = json.loads(result)["code"]
+        status_code = str(json.loads(result)["code"])
         logger.debug(f"请求地址: {url}")
         if not data:
             logger.debug("请求数据为空")
@@ -157,11 +153,11 @@ def default_post(
         exit_msg("网络异常，请检查网络连接")
     except Exception as e:
         logger.error(f"请求异常报错: {e}")
-        logger.error(f"请求异常响应: {req.text}")
-        if status_code == 500:
+        # logger.error(f"请求异常响应: {req.text}")
+        if status_code == "500":
             logger.error("远程服务器服务异常!(500)")
             exit_msg("远程服务器服务异常!(500)")
-        if status_code == 401:
+        if status_code == "401":
             Logout()
             logger.error("登录失效，请重新登录!(401)")
             exit_msg("登录失效，请重新登录!(401)")
@@ -202,7 +198,7 @@ class Yun_For_New:
         self.run_info = info["run_info"]
         self.yun_info = info["yun_info"]
         self.user_info = info["user_info"]
-        rawdata = default_post(router="/run/getHomeRunInfo", data="")
+        rawdata = default_post("/run/getHomeRunInfo", "")
         data = json.loads(rawdata)["data"]["cralist"][0]
         self.raType = data["raType"]
         self.raId = data["id"]
@@ -796,15 +792,13 @@ if __name__ == "__main__":
         "device_id",  # 设备id
         "map_key",  # map_key是高德地图的开发者密钥
         "device_name",  # 手机名称
-        "utc",  # 时间戳
         "uuid",  # uuid
-        "sign",  # sign
         "sys_edition",  # 手机操作系统版本
         "username",  # 用户名
         "password",  # 密码
     ]
     for key in user_info_list:
-        user_info[key] = conf.get("User", key)
+        user_info[key] = str(conf.get("User", key))
 
     # 跑步相关的信息
     run_info = {}
