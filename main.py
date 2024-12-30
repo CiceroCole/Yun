@@ -187,7 +187,7 @@ def save_config():
 
 
 def confirm(show_msg: str = "是否继续?"):
-    if input(show_msg + "(Y/N): ") in ["Y", "y", "yes", "Yes", ""]:
+    if input(show_msg + "[Y/N]: ") in ["Y", "y", "yes", "Yes", ""]:
         return True
     return False
 
