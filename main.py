@@ -1,4 +1,4 @@
-from req import *
+from require import *
 
 """
 加密模式：sm2非对称加密sm4密钥
