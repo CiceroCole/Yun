@@ -181,7 +181,8 @@ def save_config():
     config = configparser.ConfigParser()
     config.read(cfg_path, encoding="utf-8")
     for key in user_info_list:
-        config.set("User", key, user_info[key])
+        print(key, user_info[key])
+        config.set("User", key, str(user_info[key]))
     with open("config.ini", "w+", encoding="utf-8") as f:
         config.write(f)
 
