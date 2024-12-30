@@ -181,7 +181,6 @@ def save_config():
     config = configparser.ConfigParser()
     config.read(cfg_path, encoding="utf-8")
     for key in user_info_list:
-        print(key, user_info[key])
         config.set("User", key, str(user_info[key]))
     with open("config.ini", "w+", encoding="utf-8") as f:
         config.write(f)
@@ -203,7 +202,7 @@ class Yun_For_New:
         self.run_info = info["run_info"]
         self.yun_info = info["yun_info"]
         self.user_info = info["user_info"]
-        rawdata = default_post(router="/run/getHomeRunInfo", info=info, data="")
+        rawdata = default_post(router="/run/getHomeRunInfo", data="")
         data = json.loads(rawdata)["data"]["cralist"][0]
         self.raType = data["raType"]
         self.raId = data["id"]
