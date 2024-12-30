@@ -198,12 +198,8 @@ class Login:
             print("登录失败，请检查账号密码是否正确")
             sys.exit(0)
         if response.status_code == 200:
-            conf.set("Login", "username", username)
-            conf.set("Login", "password", password)
-            with open("./config.ini", "w", encoding="utf-8") as f:
-                conf.write(f)
             print(f"{'==='*10}登录成功!{'==='*10}\n")
             print(f"{'>>>'*10} 请注意 {'<<<'*10}\n")
             print("!!!使用脚本登录后会导致手机客户端登录失效!!!")
             print("!!!请尽量减少手机登录次数，避免被识别为多设备登录代跑!!!")
-        return token, DeviceId, DeviceName, uuid, sys_edition
+        return token, DeviceId, DeviceName, uuid, sys_edition, username, password

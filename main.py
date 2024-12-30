@@ -131,7 +131,7 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
         result = decrypt_sm4(req.text, b64decode(default_key)).decode("utf-8")
         logger.debug(f"请求地址: {url}")
         logger.debug(f"请求数据: ")
-        logger.debug(get_format_log(data))
+        logger.debug(get_format_log(data.decode()))
         logger.debug(f"请求响应: ")
         logger.debug(get_format_log(eval(result)))
         return result
@@ -164,7 +164,7 @@ def Logout():
 
 
 def noTokenLogin():
-    token, DeviceId, DeviceName, uuid, sys_edition = Login.main()
+    token, DeviceId, DeviceName, uuid, sys_edition, username, password = Login.main()
     # TEST CONTENT
     choice = input("是否保持登录状态?[Y/N]: ")
     if choice in "Yy":
@@ -175,6 +175,8 @@ def noTokenLogin():
         config.set("User", "device_id", DeviceId)
         config.set("User", "device_name", DeviceName)
         config.set("User", "sys_edition", sys_edition)
+        conf.set("Login", "username", username)
+        conf.set("Login", "password", password)
         with open("config.ini", "w+", encoding="utf-8") as f:
             config.write(f)
     return token, DeviceId, DeviceName, uuid, sys_edition
@@ -210,6 +212,9 @@ class Yun_For_New:
         # self.myLikes = 0
         if auto_generate_task:
             # 如果只要打表，完全可以不执行下面初始化代码
+            if not my_key:
+                exit_msg("若使用导航模式请填写高德地图Key")
+
             self.my_select_points = ""
             with open("./map.json") as f:
                 my_s = f.read()
