@@ -35,9 +35,15 @@ def timer():
     if now.hour > 8:
         target_time += timedelta(days=1)
     print("目标时间:", target_time.strftime("%Y年%m月%d日 %H时%M分%S秒"))
+    print("倒计时:")
     while datetime.now() < target_time:
-        countdown = format_timedelta(target_time - datetime.now())
-        print("\r倒计时: {0:2d}时{1:2d}分{2:2d}秒".format(*(countdown[1:])), end="")
+        days, hours, minutes, seconds = format_timedelta(target_time - datetime.now())
+        l = (30 - seconds % 30) * "<"
+        r = (30 - seconds % 30) * ">"
+        print(
+            f"\r{l:>30} {hours:2d} 时 {minutes:2d} 分 {seconds:2d} 秒 {r:<30}",
+            end="",
+        )
         time.sleep(1)
     print("")
     return True

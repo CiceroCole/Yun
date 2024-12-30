@@ -90,50 +90,66 @@ def decrypt_sm2(info):
 
 def getsign(utc, uuid):
     sb = "platform={}&utc={}&uuid={}&appsecret={}".format(
-        platform, str(utc), str(uuid), md5key
+        yun_info["platform"], str(utc), str(uuid), yun_info["md5key"]
     )
     m = hashlib.md5()
     m.update(sb.encode("utf-8"))
     return m.hexdigest()
 
 
-def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sign=True):
-    if m_host is None:
-        m_host = my_host
-    url = "http://" + m_host + router
+def default_post(
+    router: str,
+    data: bytes | str,
+    headers: dict = None,
+    host: str = None,
+    isBytes: bool = False,
+    gen_sign: bool = True,
+) -> dict | None:
+    host = host if host else yun_info["school_host"]
+    url = "http://" + host + router
     if gen_sign:
-        my_utc = str(int(time.time()))
-    sign = getsign(my_utc, my_uuid) if gen_sign else my_sign
+        utc = str(int(time.time()))
+        sign = getsign(utc, user_info["uuid"])
+    else:
+        sign = user_info["sign"]
     if headers is None:
         headers = {
-            "token": my_token,
+            "token": user_info["token"],
             "isApp": "app",
-            "deviceId": my_device_id,
-            "deviceName": my_device_name,
-            "version": my_app_edition,
-            "platform": platform,
+            "device_id": user_info["device_id"],
+            "deviceName": user_info["device_name"],
+            "version": yun_info["app_edition"],
+            "platform": yun_info["platform"],
             "Content-Type": "application/json; charset=utf-8",
             "Connection": "Keep-Alive",
             "Accept-Encoding": "gzip",
             "User-Agent": "okhttp/3.12.0",
-            "utc": my_utc,
-            "uuid": my_uuid,
+            "utc": user_info["utc"],
+            "uuid": user_info["uuid"],
             "sign": sign,
         }
     data_json = {
-        "cipherKey": CipherKeyEncrypted,
-        "content": encrypt_sm4(data, b64decode(default_key), isBytes=isBytes),
+        "cipherKey": yun_info["cipherkeyencrypted"],
+        "content": encrypt_sm4(data, b64decode(yun_info["cipherkey"]), isBytes=isBytes),
     }
     try:
         req = requests.post(
             url=url, data=json.dumps(data_json), headers=headers
         )  # data进行了加密
-        result = decrypt_sm4(req.text, b64decode(default_key)).decode("utf-8")
+        Byte_result = decrypt_sm4(req.text, b64decode(yun_info["cipherkey"]))
+        result = Byte_result.decode("utf-8")
+        status_code = json.loads(result)["code"]
         logger.debug(f"请求地址: {url}")
-        logger.debug(f"请求数据: ")
-        logger.debug(get_format_log(data.decode()))
+        if not data:
+            logger.debug("请求数据为空")
+        elif not isBytes:
+            logger.debug(f"请求数据: ")
+            logger.debug(get_format_log(data))
+        else:
+            logger.debug(f"请求数据: ")
+            logger.debug(get_format_log(json.loads(gzip.decompress(data))))
         logger.debug(f"请求响应: ")
-        logger.debug(get_format_log(eval(result)))
+        logger.debug(get_format_log(json.loads(result)))
         return result
     except requests.exceptions.ConnectionError as e:
         logger.error(f"网络异常，请检查网络连接")
@@ -142,10 +158,10 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
     except Exception as e:
         logger.error(f"请求异常报错: {e}")
         logger.error(f"请求异常响应: {req.text}")
-        if eval(req.text)["code"] == 500:
+        if status_code == 500:
             logger.error("远程服务器服务异常!(500)")
             exit_msg("远程服务器服务异常!(500)")
-        if eval(req.text)["code"] == 401:
+        if status_code == 401:
             Logout()
             logger.error("登录失效，请重新登录!(401)")
             exit_msg("登录失效，请重新登录!(401)")
@@ -154,50 +170,55 @@ def default_post(router, data, headers=None, m_host=None, isBytes=False, gen_sig
 
 def Logout():
     config = configparser.ConfigParser()
-    config.read("config.ini", encoding="utf-8")
-    config.set("User", "token", "")
-    config.set("User", "uuid", "")
-    config.set("Login", "username", "")
-    config.set("Login", "password", "")
+    config.read(cfg_path, encoding="utf-8")
+    for key in user_info_list:
+        config.set("User", key, "")
     with open("config.ini", "w+", encoding="utf-8") as f:
         config.write(f)
 
 
-def noTokenLogin():
-    token, DeviceId, DeviceName, uuid, sys_edition, username, password = Login.main()
-    # TEST CONTENT
-    choice = input("是否保持登录状态?[Y/N]: ")
-    if choice in "Yy":
-        config = configparser.ConfigParser()
-        config.read("config.ini", encoding="utf-8")
-        config.set("User", "token", token)
-        config.set("User", "uuid", uuid)
-        config.set("User", "device_id", DeviceId)
-        config.set("User", "device_name", DeviceName)
-        config.set("User", "sys_edition", sys_edition)
-        conf.set("Login", "username", username)
-        conf.set("Login", "password", password)
-        with open("config.ini", "w+", encoding="utf-8") as f:
-            config.write(f)
-    return token, DeviceId, DeviceName, uuid, sys_edition
+def save_config():
+    config = configparser.ConfigParser()
+    config.read(cfg_path, encoding="utf-8")
+    for key in user_info_list:
+        config.set("User", key, user_info[key])
+    with open("config.ini", "w+", encoding="utf-8") as f:
+        config.write(f)
+
+
+def confirm(show_msg: str = "是否继续?"):
+    if input(show_msg + "(Y/N): ") in ["Y", "y", "yes", "Yes", ""]:
+        return True
+    return False
 
 
 class Yun_For_New:
 
-    def __init__(self, auto_generate_task=False):
-        rawdata = default_post("/run/getHomeRunInfo", "")
+    def __init__(
+        self,
+        info: dict,
+        auto_generate_task=False,
+    ):
+        self.run_info = info["run_info"]
+        self.yun_info = info["yun_info"]
+        self.user_info = info["user_info"]
+        rawdata = default_post(router="/run/getHomeRunInfo", info=info, data="")
         data = json.loads(rawdata)["data"]["cralist"][0]
         self.raType = data["raType"]
         self.raId = data["id"]
-        self.strides = strides
+        self.strides = self.run_info["strides"]
         self.schoolId = data["schoolId"]
         self.raRunArea = data["raRunArea"]
         self.raDislikes = data["raDislikes"]
         self.raMinDislikes = data["raDislikes"]
-        self.raSingleMileageMin = data["raSingleMileageMin"] + single_mileage_min_offset
-        self.raSingleMileageMax = data["raSingleMileageMax"] + single_mileage_max_offset
-        self.raCadenceMin = data["raCadenceMin"] + cadence_min_offset
-        self.raCadenceMax = data["raCadenceMax"] + cadence_max_offset
+        self.raSingleMileageMin = (
+            data["raSingleMileageMin"] + self.run_info["single_mileage_min_offset"]
+        )
+        self.raSingleMileageMax = (
+            data["raSingleMileageMax"] + self.run_info["single_mileage_max_offset"]
+        )
+        self.raCadenceMin = data["raCadenceMin"] + self.run_info["cadence_min_offset"]
+        self.raCadenceMax = data["raCadenceMax"] + self.run_info["cadence_max_offset"]
         points = data["points"].split("|")
         logger.info("跑步点位:")
         logger.info(get_format_log(points))
@@ -212,9 +233,16 @@ class Yun_For_New:
         # self.myLikes = 0
         if auto_generate_task:
             # 如果只要打表，完全可以不执行下面初始化代码
-            if not my_key:
-                exit_msg("若使用导航模式请填写高德地图Key")
-
+            if not self.user_info["map_key"]:
+                logger.error("若使用导航模式请填写高德地图Key")
+                self.user_info["map_key"] = input("请输入高德地图Key: ")
+                if not self.user_info["map_key"]:
+                    os.system(
+                        "start https://github.com/CiceroCole/Yun?tab=readme-ov-file#2-%E5%AF%BC%E8%88%AA%E6%A8%A1%E5%BC%8F"
+                    )
+                    exit_msg("若使用导航模式请填写高德地图Key")
+                if confirm("是否保存高德地图Key?"):
+                    save_config()
             self.my_select_points = ""
             with open("./map.json") as f:
                 my_s = f.read()
@@ -241,7 +269,9 @@ class Yun_For_New:
             self.now_dist = 0
             i = 0
             while (
-                self.now_dist / 1000 > min_distance + allow_overflow_distance
+                self.now_dist / 1000
+                > self.run_info["min_distance"]
+                + self.run_info["allow_overflow_distance"]
             ) or self.now_dist == 0:
                 i += 1
                 logger.info("第" + str(i) + "次尝试...")
@@ -253,7 +283,11 @@ class Yun_For_New:
                 self.myLikes = 0
                 self.generate_task(self.my_select_points)
             self.now_time = int(
-                random.uniform(min_consume, max_consume) * 60 * (self.now_dist / 1000)
+                random.uniform(
+                    self.run_info["min_consume"], self.run_info["max_consume"]
+                )
+                * 60
+                * (self.now_dist / 1000)
             )
             msg = (
                 "打卡点标记完成！本次将打卡"
@@ -281,7 +315,8 @@ class Yun_For_New:
         logger.info(get_format_log(points))
         for point_index, point in enumerate(points):
             if (
-                self.now_dist / 1000 < min_distance or self.myLikes < self.raMinDislikes
+                self.now_dist / 1000 < self.run_info["min_distance"]
+                or self.myLikes < self.raMinDislikes
             ):  # 里程不足或者点不够
                 self.manageList.append(
                     {"point": point, "marked": "Y", "index": str(point_index)}
@@ -293,14 +328,22 @@ class Yun_For_New:
                 self.manageList.append({"point": point, "marked": "N", "index": ""})
                 # 多余的点
         # 如果跑完了表都不够
-        if self.now_dist / 1000 < min_distance:
+        if self.now_dist / 1000 < self.run_info["min_distance"]:
             logger.info("跑完了一圈关键点，长度仍然不够，会自动回跑绕圈圈")
-            logger.info("公里数不足" + str(min_distance) + "公里，将自动回跑...")
+            logger.info(
+                "公里数不足"
+                + str(self.run_info["min_distance"])
+                + "公里，将自动回跑..."
+            )
             if printLog:
                 print("跑完了一圈关键点，长度仍然不够，会自动回跑绕圈圈")
-                print("公里数不足" + str(min_distance) + "公里，将自动回跑...")
+                print(
+                    "公里数不足"
+                    + str(self.run_info["min_distance"])
+                    + "公里，将自动回跑..."
+                )
             index = 0
-            while self.now_dist / 1000 < min_distance:
+            while self.now_dist / 1000 < self.run_info["min_distance"]:
                 logger.debug(get_format_log(("manageList : \n", self.manageList)))
                 self.add_task(self.manageList[index]["point"])
                 index = (index + 1) % self.raDislikes
@@ -314,7 +357,7 @@ class Yun_For_New:
         else:
             origin = self.task_list[-1]["originPoint"]  # 列表的-1项当起始点
         data = {
-            "key": my_key,
+            "key": self.user_info["map_key"],
             "origin": origin,  # 起始点
             "destination": point,  # 传入的点
         }
@@ -328,6 +371,9 @@ class Yun_For_New:
             time.sleep(1)
             self.add_task(point)
             return
+        if resp_json.get("errcode") == 10001:
+            logger.error("高德地图API密钥错误")
+            exit_msg("高德地图API密钥错误")
         if resp_json.get("errcode") == 10044:
             logger.error("今日高德地图API已达使用上限")
             exit_msg("今日高德地图API已达使用上限")
@@ -346,19 +392,37 @@ class Yun_For_New:
                     i = len(split_point)
                     distForthis = (
                         self.now_dist
-                        - path["distance"] * (split_count - i) / split_count
+                        - path["distance"]
+                        * (self.run_info["split_count"] - i)
+                        / self.run_info["split_count"]
                     )
                     timeForthis = int(
-                        ((min_consume + max_consume) / 2)
+                        (
+                            (
+                                self.run_info["min_consume"]
+                                + self.run_info["max_consume"]
+                            )
+                            / 2
+                        )
                         * 60
-                        * (self.now_dist - path["distance"] * (split_count - i))
+                        * (
+                            self.now_dist
+                            - path["distance"] * (self.run_info["split_count"] - i)
+                        )
                         / 1000
                     )
                     split_point.append(
                         {
                             "point": p,
                             "runStatus": "1",
-                            "speed": format((min_consume + max_consume) / 2, ".2f"),
+                            "speed": format(
+                                (
+                                    self.run_info["min_consume"]
+                                    + self.run_info["max_consume"]
+                                )
+                                / 2,
+                                ".2f",
+                            ),
                             # 最小和最大速度之间的随机
                             "isFence": "Y",
                             "isMock": False,
@@ -366,7 +430,7 @@ class Yun_For_New:
                             "runTime": timeForthis,
                         }
                     )
-                    if len(split_point) == split_count:
+                    if len(split_point) == self.run_info["split_count"]:
                         # 到了10个，加入列表组中
                         split_points.append(split_point)
                         # 任务数量加一
@@ -391,24 +455,30 @@ class Yun_For_New:
                 b_x = float(b_split[0])
                 b_y = float(b_split[1])
                 # 真就均匀等分啊
-                d_x = (b_x - a_x) / split_count
-                d_y = (b_y - a_y) / split_count
+                d_x = (b_x - a_x) / self.run_info["split_count"]
+                d_y = (b_y - a_y) / self.run_info["split_count"]
                 # 补上10个点
-                for resp_json in range(0, split_count):
+                for resp_json in range(0, self.run_info["split_count"]):
                     distForthis = (
                         self.now_dist
                         - (path["distance"] / len(split_point))
-                        * (split_count - resp_json)
-                        / split_count
+                        * (self.run_info["split_count"] - resp_json)
+                        / self.run_info["split_count"]
                     )
                     timeForthis = int(
-                        ((min_consume + max_consume) / 2)
+                        (
+                            (
+                                self.run_info["min_consume"]
+                                + self.run_info["max_consume"]
+                            )
+                            / 2
+                        )
                         * 60
                         * (
                             self.now_dist
                             - (path["distance"] / len(split_point))
-                            * (split_count - resp_json)
-                            / split_count
+                            * (self.run_info["split_count"] - resp_json)
+                            / self.run_info["split_count"]
                         )
                         / 1000
                     )
@@ -418,7 +488,14 @@ class Yun_For_New:
                             + ","
                             + str(a_y + (resp_json + 1) * d_y),
                             "runStatus": "1",
-                            "speed": format((min_consume + max_consume) / 2, ".2f"),
+                            "speed": format(
+                                (
+                                    self.run_info["min_consume"]
+                                    + self.run_info["max_consume"]
+                                )
+                                / 2,
+                                ".2f",
+                            ),
                             # 最小和最大速度之间的随机
                             "isFence": "Y",
                             "isMock": False,
@@ -469,7 +546,9 @@ class Yun_For_New:
             "simulateNum": 0,
             "time": points[9]["runTime"] - points[0]["runTime"],
             "crsRunRecordId": self.crsRunRecordId,
-            "speeds": format((min_consume + max_consume) / 2, ".2f"),
+            "speeds": format(
+                (self.run_info["min_consume"] + self.run_info["max_consume"]) / 2, ".2f"
+            ),
             "schoolId": self.schoolId,
             "strides": self.strides,
             "userName": self.userName,
@@ -484,11 +563,19 @@ class Yun_For_New:
     def do(self):
         print(">>>" * 10 + "开始跑步" + "<<<" * 10)
         sleep_time = self.now_time / (self.task_count + 1)
+        logger.info("跑步任务点位列表:")
+        logger.info(get_format_log(self.task_list))
         logger.info("等待" + format(sleep_time, ".2f") + "秒...")
         if not printLog:
             print("等待" + format(sleep_time, ".2f") + "秒...")
         time.sleep(sleep_time)  # 隔一段时间
-        for task_index, task in tqdm(enumerate(self.task_list)):
+        task_index = 0
+        for task in tqdm(
+            self.task_list,
+            leave=True,
+            desc="正在跑步...",
+            unit="点",
+        ):
             logger.info("开始处理第" + str(task_index + 1) + "个点...")  # 打卡点组
             for split_index, split in enumerate(
                 task["points"]
@@ -502,6 +589,7 @@ class Yun_For_New:
                     + "秒..."
                 )
                 time.sleep(sleep_time)
+            task_index += 1
             logger.info("第" + str(task_index + 1) + "个点处理完毕！")
 
     def do_by_points_map(self, path="./tasks", random_choose=False, isDrift=False):
@@ -546,7 +634,12 @@ class Yun_For_New:
             self.task_map = add_drift(self.task_map)
         points = []
         count = 0
-        for point in tqdm(self.task_map["data"]["pointsList"], leave=True):
+        for point in tqdm(
+            self.task_map["data"]["pointsList"],
+            leave=True,
+            desc="正在跑步...",
+            unit="点",
+        ):
             point_changed = {
                 "point": point["point"],
                 "runStatus": "1",
@@ -560,12 +653,12 @@ class Yun_For_New:
             }
             points.append(point_changed)
             count += 1
-            if count == split_count:
+            if count == self.run_info["split_count"]:
                 self.split_by_points_map(points)
                 sleep_time = (
                     self.task_map["data"]["duration"]
                     / len(self.task_map["data"]["pointsList"])
-                    * split_count
+                    * self.run_info["split_count"]
                 )
                 logger.info(f" 等待{sleep_time:.2f}秒.")
                 time.sleep(sleep_time)
@@ -610,9 +703,9 @@ class Yun_For_New:
             "recordMileage": self.task_map["data"]["recordMileage"],
             "recodeCadence": self.task_map["data"]["recodeCadence"],
             "recodePace": self.task_map["data"]["recodePace"],
-            "deviceName": my_device_name,
-            "sysEdition": my_sys_edition,
-            "appEdition": my_app_edition,
+            "deviceName": self.user_info["device_name"],
+            "sysEdition": self.user_info["sys_edition"],
+            "appEdition": self.yun_info["app_edition"],
             "raIsStartPoint": "Y",
             "raIsEndPoint": "Y",
             "raRunArea": self.raRunArea,
@@ -625,10 +718,12 @@ class Yun_For_New:
             "manageList": self.task_map["data"]["manageList"],
             "remake": "1",
         }
-        resp = default_post("/run/finish", json.dumps(data))
         try:
-            if eval(resp) == {"code": 200, "msg": "恭喜你当前跑步成绩合格，加油^_^"}:
+            resp = default_post("/run/finish", json.dumps(data))
+            if "合格" in str(resp):
                 exit_msg("本次运动成功结束！")
+            else:
+                exit_msg("本次运动失败！详见日志")
         except Exception as e:
             logger.error(e)
             logger.error("发送失败！")
@@ -639,9 +734,9 @@ class Yun_For_New:
             "recordMileage": format(self.now_dist / 1000, ".2f"),
             "recodeCadence": str(random.randint(self.raCadenceMin, self.raCadenceMax)),
             "recodePace": format(self.now_time / 60 / (self.now_dist / 1000), ".2f"),
-            "deviceName": my_device_name,
-            "sysEdition": my_sys_edition,
-            "appEdition": my_app_edition,
+            "deviceName": self.user_info["device_name"],
+            "sysEdition": self.user_info["sys_edition"],
+            "appEdition": self.yun_info["app_edition"],
             "raIsStartPoint": "Y",
             "raIsEndPoint": "Y",
             "raRunArea": self.raRunArea,
@@ -654,9 +749,9 @@ class Yun_For_New:
             "manageList": self.manageList,
             "remake": "1",
         }
-        resp = default_post("/run/finish", json.dumps(data))
         try:
-            if eval(resp) == {"code": 200, "msg": "恭喜你当前跑步成绩合格，加油^_^"}:
+            resp = default_post("/run/finish", json.dumps(data))
+            if "合格" in str(resp):
                 exit_msg("本次运动成功结束！")
         except Exception as e:
             logger.error(e)
@@ -680,118 +775,106 @@ if __name__ == "__main__":
     conf.read(cfg_path, encoding="utf-8")
 
     # 学校、keys和版本信息
-    my_host = conf.get("Yun", "school_host")  # 学校的host
-    default_key = conf.get("Yun", "cipherkey")  # 加密密钥
-    CipherKeyEncrypted = conf.get("Yun", "cipherkeyencrypted")  # 加密密钥的sm2加密版本
-    my_app_edition = conf.get("Yun", "app_edition")  # app版本（我手机上是3.0.0）
-
-    # 用户信息，包括设备信息
-    my_token = conf.get("User", "token")  # 用户token
-    my_device_id = conf.get(
-        "User", "device_id"
-    )  # 设备id （据说很随机，抓包搞几次试试看）
-    my_key = conf.get("User", "map_key")  # map_key是高德地图的开发者密钥
-    my_device_name = conf.get("User", "device_name")  # 手机名称
-    my_sys_edition = conf.get("User", "sys_edition")  # 安卓版本（大版本）
-    my_utc = conf.get("User", "utc") or str(int(time.time()))
-    my_uuid = conf.get("User", "uuid")
-    my_sign = conf.get("User", "sign")
+    yun_info = {}
+    yun_info_list = [
+        "yun_host",  # 云运动服务器host
+        "school_host",  # 学校的host
+        "publickey",  # sm2公钥
+        "privatekey",  # sm2私钥
+        "cipherkeyencrypted",  # 加密密钥的sm2加密版本
+        "cipherkey",  # 加密密钥
+        "md5key",  # md5加密密钥
+        "platform",  # 平台
+        "app_edition",  # app版本
+        "school_id",  # 学校id
+    ]
+    for key in yun_info_list:
+        yun_info[key] = conf.get("Yun", key)
+    user_info = {}
+    user_info_list = [
+        "token",  # 用户token
+        "device_id",  # 设备id
+        "map_key",  # map_key是高德地图的开发者密钥
+        "device_name",  # 手机名称
+        "utc",  # 时间戳
+        "uuid",  # uuid
+        "sign",  # sign
+        "sys_edition",  # 手机操作系统版本
+        "username",  # 用户名
+        "password",  # 密码
+    ]
+    for key in user_info_list:
+        user_info[key] = conf.get("User", key)
 
     # 跑步相关的信息
+    run_info = {}
     # my_point = conf.get("Run", "point") # 当前位置，取消，改到map.json
-    min_distance = float(conf.get("Run", "min_distance"))  # 2.5公里
-    allow_overflow_distance = float(
-        conf.get("Run", "allow_overflow_distance")
-    )  # 允许偏移超出的公里数
-    single_mileage_min_offset = float(
-        conf.get("Run", "single_mileage_min_offset")
-    )  # 单次配速偏移最小
-    single_mileage_max_offset = float(
-        conf.get("Run", "single_mileage_max_offset")
-    )  # 单次配速偏移最大
-    cadence_min_offset = int(conf.get("Run", "cadence_min_offset"))  # 最小步频偏移
-    cadence_max_offset = int(conf.get("Run", "cadence_max_offset"))  # 最大步频偏移
-    split_count = int(conf.get("Run", "split_count"))
-    exclude_points = json.loads(conf.get("Run", "exclude_points"))  # 排除点
-    min_consume = float(conf.get("Run", "min_consume"))  # 配速最小和最大
-    max_consume = float(conf.get("Run", "max_consume"))
-    strides = float(conf.get("Run", "strides"))
-
-    PUBLIC_KEY = b64decode(conf.get("Yun", "PublicKey"))
-    PRIVATE_KEY = b64decode(conf.get("Yun", "PrivateKey"))
-
-    md5key = conf.get("Yun", "md5key")
-    platform = conf.get("Yun", "platform")
-    if not conf.get("User", "token"):
-        my_token, my_device_id, my_device_name, my_uuid, my_sys_edition = noTokenLogin()
-    # 检查版本是否小于3.4.5
-    if conf.get("Yun", "app_edition") < "3.4.5":
-        conf.set("Yun", "app_edition", "3.4.5")
-        with open(cfg_path, "w+", encoding="utf-8") as f:
-            conf.write(f)
-        # config app版本检查 当前可用3.4.5
-    conf.read(cfg_path, encoding="utf-8")
+    run_info_list = [
+        "min_distance",
+        "allow_overflow_distance",  # 允许偏移超出的公里数
+        "single_mileage_min_offset",  # 单次配速偏移最小
+        "single_mileage_max_offset",  # 单次配速偏移最大
+        "cadence_min_offset",  # 最小步频偏移
+        "cadence_max_offset",  # 最大步频偏移
+        "split_count",  # 每10个路径点作为一组splitPoint
+        "exclude_points",  # 排除点
+        "min_consume",  # 配速最小
+        "max_consume",  # 配速最大
+        "strides",  # 步幅
+    ]
+    for key in run_info_list:
+        run_info[key] = eval(conf.get("Run", key))
+    user_info = Login.main()
+    info = {"run_info": run_info, "yun_info": yun_info, "user_info": user_info}
+    PUBLIC_KEY = b64decode(yun_info["publickey"])
+    PRIVATE_KEY = b64decode(yun_info["privatekey"])
+    # config app版本检查 当前可用3.4.5
+    if user_info["frist_login"] and confirm("是否保留登录信息?"):
+        save_config()
     logger.info("您的信息为: ")
-    logger.info("Token: ".ljust(15) + my_token)
-    logger.info("uuid: ".ljust(15) + my_uuid)
-    logger.info("platform: ".ljust(15) + platform)
-    logger.info("deviceId: ".ljust(15) + my_device_id)
-    logger.info("deviceName: ".ljust(15) + my_device_name)
-    logger.info("utc: ".ljust(15) + my_utc)
-    logger.info("sign: ".ljust(15) + my_sign)
-    logger.info("map_key: ".ljust(15) + my_key)
-    logger.info("sys_edition: ".ljust(15) + my_sys_edition)
-
-    username = conf.get("Login", "username")
-    if username:
-        print(f"您的账号为: {username}")
+    for key in user_info_list:
+        logger.info(key.ljust(15) + str(user_info[key]))
+    if user_info["username"]:
+        print(f"您的账号为: {user_info['username']}")
     else:
-        print(f"你的token为: {my_token}")
-    sure = "Y" if args.auto_run else input("是否使用此账号进行运动?[Y/N]: ")
-    if sure not in "Yy":
-        if input("重新登录(L)或退出程序(Q): ") in "重新登录Ll":
-            Logout()
-            my_token, my_device_id, my_device_name, my_uuid, my_sys_edition = (
-                noTokenLogin()
-            )
+        print(f"你的token为: {user_info['token']}")
+    while True:
+        if not args.auto_run:
+            print("(1) 重演模式 : (建议选择)固定路线无需高德地图key")
+            print("(2) 导航模式 : 根据选点与高德地图key自动生成路线")
+            print("(3) 定时模式 : 到达输入的时间自动执行运动任务")
+            print("(4) 退出登录 : 退出程序并清除登录信息")
+            log_table = input("请输入序号选择模式: ")
         else:
+            log_table = "1"
+        if log_table == "1":
+            driftChoice = args.drift if args.auto_run else True
+            task_choose = True if args.auto_run else False
+            Yun = Yun_For_New(info)
+            Yun.start()
+            Yun.do_by_points_map(
+                path="./tasks", random_choose=task_choose, isDrift=driftChoice
+            )
+            Yun.finish_by_points_map()
+        if log_table == "2":
+            Yun = Yun_For_New(
+                info=info,
+                auto_generate_task=True,
+            )
+            Yun.start()
+            Yun.do()
+            Yun.finish()
+        # 取消快速模式
+        # if log_table == "3":
+        #     Yun = Yun_For_New(auto_generate_task=True)
+        #     Yun.start()
+        #     Yun.finish()
+        if log_table == "3":
+            timer()
+            Yun = Yun_For_New(info)
+            Yun.start()
+            Yun.do_by_points_map(path="./tasks", random_choose=True, isDrift=True)
+            Yun.finish_by_points_map()
+        if log_table == "4":
+            Logout()
             exit_msg("退出程序")
-    else:
-        while True:
-            if not args.auto_run:
-                print("(1) 重演模式 : (建议选择)固定路线无需高德地图key")
-                print("(2) 导航模式 : 根据选点与高德地图key自动生成路线")
-                print("(3) 定时模式 : 到达输入的时间自动执行运动任务")
-                print("(4) 退出程序")
-                log_table = input("请输入序号选择模式: ")
-            else:
-                log_table = "1"
-            if log_table == "1":
-                driftChoice = args.drift if args.auto_run else True
-                task_choose = True if args.auto_run else False
-                Yun = Yun_For_New(auto_generate_task=False)
-                Yun.start()
-                Yun.do_by_points_map(
-                    path="./tasks", random_choose=task_choose, isDrift=driftChoice
-                )
-                Yun.finish_by_points_map()
-            if log_table == "2":
-                Yun = Yun_For_New(auto_generate_task=True)
-                Yun.start()
-                Yun.do()
-                Yun.finish()
-            # 取消快速模式
-            # if log_table == "3":
-            #     Yun = Yun_For_New(auto_generate_task=True)
-            #     Yun.start()
-            #     Yun.finish()
-            if log_table == "3":
-                if timer():
-                    Yun = Yun_For_New(auto_generate_task=False)
-                    Yun.start()
-                    Yun.do_by_points_map(
-                        path="./tasks", random_choose=True, isDrift=True
-                    )
-                    Yun.finish_by_points_map()
-            if log_table == "4":
-                exit_msg("退出程序")

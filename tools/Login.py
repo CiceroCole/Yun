@@ -1,3 +1,4 @@
+import os
 import random
 import time
 import sys
@@ -12,6 +13,13 @@ import configparser
 
 SM4_BLOCK_SIZE = 16
 conf = configparser.ConfigParser()
+
+
+def get_config_path():
+    _cfg_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../", "config.ini")
+    ).replace("\\", "/")
+    return _cfg_path
 
 
 class Login:
@@ -81,17 +89,16 @@ class Login:
         return plaintext.decode()
 
     def main():
-
-        utc = int(time.time())
         # 读取ini
-        conf.read("./config.ini", encoding="utf-8")
+        cfg_path = get_config_path()
+        conf.read(cfg_path, encoding="utf-8")
 
         # 判断[Login]是否存在
-        if "Login" not in conf.sections():
-            conf.add_section("Login")
-            conf.set("Login", "username", "")
-            conf.set("Login", "password", "")
-            with open("./config.ini", "w", encoding="utf-8") as f:
+        if "User" not in conf.sections():
+            conf.add_section("User")
+            conf.set("User", "username", "")
+            conf.set("User", "password", "")
+            with open(cfg_path, "w", encoding="utf-8") as f:
                 conf.write(f)
 
         # 判断school_id是否在[Yun]中
@@ -100,28 +107,52 @@ class Login:
             # conf.set("Yun", "school_id", "100")
             # 三联学院 125
             conf.set("Yun", "school_id", "125")
-            with open("./config.ini", "w", encoding="utf-8") as f:
+            with open(cfg_path, "w", encoding="utf-8") as f:
                 conf.write(f)
 
         # 读取ini配置
-        if conf.get("Login", "username"):
-            username = conf.get("Login", "username")
-            password = conf.get("Login", "password")
-        else:
-            username = input("请输入用户账号: ")
-            password = input("请输入用户密码: ")
-
-        DeviceId = conf.get("User", "device_id") or str(
+        user_info = {}
+        user_info_list = [
+            "token",  # 用户token
+            "device_id",  # 设备id
+            "map_key",  # map_key是高德地图的开发者密钥
+            "device_name",  # 手机名称
+            "utc",  # 时间戳
+            "uuid",  # uuid
+            "sign",  # sign
+            "sys_edition",  # 手机操作系统版本
+            "username",  # 用户名
+            "password",  # 密码
+        ]
+        for key in user_info_list:
+            user_info[key] = conf.get("User", key)
+        if user_info["token"]:
+            user_info["frist_login"] = False  # 不是第一次登录
+            return user_info
+        user_info["frist_login"] = True  # 第一次登录
+        # 用户信息
+        user_info["utc"] = int(time.time())
+        user_info["username"] = input("请输入用户账号: ")
+        user_info["password"] = input("请输入用户密码: ")
+        user_info["device_id"] = user_info["device_id"] or str(
             random.randint(10e14, 10e15 - 1)
         )
         random_id = "".join(random.sample(string.ascii_uppercase + string.digits, 10))
         random_name = random.choice(
             ["Xiaomi", "Huawei", "Vivo", "Oppo", "Meizu", "Samsung", "Honor"]
         ) + "({})".format(random_id)
-        DeviceName = conf.get("User", "device_name") or random_name
-        uuid = conf.get("User", "uuid") or DeviceId
-        sys_edition = conf.get("User", "sys_edition") or str(random.randint(10, 14))
+        user_info["device_name"] = user_info["device_name"] or random_name
+        user_info["uuid"] = user_info["uuid"] or user_info["device_id"]
+        user_info["sys_edition"] = user_info["sys_edition"] or str(
+            random.randint(10, 14)
+        )
+        # Yun运动信息
         appedition = conf.get("Yun", "app_edition")
+        # 检查版本是否小于3.4.5
+        if appedition < "3.4.5":
+            conf.set("Yun", "app_edition", "3.4.5")
+            with open(cfg_path, "w+", encoding="utf-8") as f:
+                conf.write(f)
         # 合工大登录账号专有链接
         # url = "http://" + conf.get("Yun", "school_host") + "/login/appLoginHGD"
         # 安徽三联学院登录账号链接
@@ -133,8 +164,8 @@ class Login:
         # md5签名结果用hex
         encryptData = str(
             {
-                "userName": username,
-                "password": password,
+                "userName": user_info["username"],
+                "password": user_info["password"],
                 "schoolId": schoolid,
                 "type": "1",
             }
@@ -143,7 +174,7 @@ class Login:
         # 签名结果
         AppSecret = "pie0hDSfMRINRXc7s1UIXfkE"
         sign_data = "platform={}&utc={}&uuid={}&appsecret={}".format(
-            platform, utc, uuid, AppSecret
+            platform, user_info["utc"], user_info["uuid"], AppSecret
         )
         sign = Login.md5_encryption(sign_data)
         key = "e2c9e15e84f93b81ee01bbd299a31563"
@@ -153,12 +184,12 @@ class Login:
         headers = {
             "token": "",
             "isApp": "app",
-            "deviceId": uuid,
-            "deviceName": DeviceName,
+            "deviceId": user_info["uuid"],
+            "deviceName": user_info["device_name"],
             "version": appedition,
             "platform": platform,
-            "uuid": uuid,
-            "utc": str(utc),
+            "uuid": user_info["uuid"],
+            "utc": str(user_info["utc"]),
             "sign": sign,
             "Content-Type": "application/json; charset=utf-8",
             "Host": school_host,
@@ -193,7 +224,7 @@ class Login:
             )
             # print(DecryptedData)
         try:
-            token = DecryptedData["data"]["token"]
+            user_info["token"] = DecryptedData["data"]["token"]
         except KeyError:
             print("登录失败，请检查账号密码是否正确")
             sys.exit(0)
@@ -202,4 +233,5 @@ class Login:
             print(f"{'>>>'*10} 请注意 {'<<<'*10}\n")
             print("!!!使用脚本登录后会导致手机客户端登录失效!!!")
             print("!!!请尽量减少手机登录次数，避免被识别为多设备登录代跑!!!")
-        return token, DeviceId, DeviceName, uuid, sys_edition, username, password
+
+        return user_info
