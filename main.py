@@ -6,11 +6,6 @@ from require import *
 # 偏移量
 # default_iv = '\1\2\3\4\5\6\7\x08' 失效
 
-PublicKey = "BL7JvEAV7Wci0h5YAysN0BPNVdcUhuyJszJLRwnurav0CGftcrVcvrWeCPBIjIIBF371teRbrCS9V1Wyq7i3Arc="
-PrivateKey = "P3s0+rMuY4Nt5cUWuOCjMhDzVNdom+W0RvdV6ngM+/E="
-PUBLIC_KEY = b64decode(PublicKey)
-PRIVATE_KEY = b64decode(PrivateKey)
-
 
 def get_format_log(message):
     message_stream = StringIO()
@@ -50,14 +45,6 @@ def bytes_to_hex(input_string):
     return hex_string
 
 
-sm2_crypt = sm2.CryptSM2(
-    public_key=bytes_to_hex(PUBLIC_KEY[1:]),
-    private_key=bytes_to_hex(PRIVATE_KEY),
-    mode=1,
-    asn1=True,
-)
-
-
 def encrypt_sm4(value, SM_KEY, isBytes=False):
     crypt_sm4 = CryptSM4()
     crypt_sm4.set_key(SM_KEY, SM4_ENCRYPT)
@@ -73,19 +60,6 @@ def decrypt_sm4(value, SM_KEY):
     crypt_sm4.set_key(SM_KEY, SM4_DECRYPT)
     decrypt_value = crypt_sm4.crypt_ecb(b64decode(value))
     return decrypt_value
-
-
-# warning：实测gmssl的sm2加密给Java Hutool解密结果不对，所以下面的2函数暂不使用
-def encrypt_sm2(info):
-    encode_info = sm2_crypt.encrypt(info.encode("utf-8"))
-    encode_info = b64encode(encode_info).decode()  # 将二进制bytes通过base64编码
-    return encode_info
-
-
-def decrypt_sm2(info):
-    decode_info = b64decode(info)  # 通过base64解码成二进制bytes
-    decode_info = sm2_crypt.decrypt(decode_info)
-    return decode_info
 
 
 def getsign(utc, uuid):
@@ -220,13 +194,6 @@ class Yun_For_New:
         logger.info(get_format_log(points))
         self.now_path = 0
 
-        # self.manageList: List[Dict] = []  # 列表的每一个元素都是字典
-        # self.now_time = int(
-        #     random.uniform(min_consume, max_consume) * 60 * (self.now_dist / 1000)
-        # )
-        # self.task_list = []
-        # self.task_count = 0
-        # self.myLikes = 0
         if auto_generate_task:
             # 如果只要打表，完全可以不执行下面初始化代码
             if not self.user_info["map_key"]:
@@ -237,7 +204,9 @@ class Yun_For_New:
                         "start https://github.com/CiceroCole/Yun?tab=readme-ov-file#2-%E5%AF%BC%E8%88%AA%E6%A8%A1%E5%BC%8F"
                     )
                     exit_msg("若使用导航模式请填写高德地图Key")
+                    logger.info("高德地图Key {}".format(self.user_info["map_key"]))
                 if confirm("是否保存高德地图Key?"):
+                    logger.info("高德地图Key已保存")
                     save_config()
             self.my_select_points = ""
             with open("./map.json") as f:
@@ -254,14 +223,6 @@ class Yun_For_New:
             logger.info("开始标记打卡点...")
             if not printLog:
                 print("开始标记打卡点...")
-            # for exclude_point in exclude_points:
-            #     try:
-            #         points.remove(exclude_point)
-            #         logger.log("成功删除打卡点", exclude_point)
-            #     except ValueError:
-            #         logger.log("打卡点", exclude_point, "不存在")
-            #         # 删除容易跑到学校外面的打卡点
-            # # 采取手动选择点的方式，上面的放出圈方法弃用
             self.now_dist = 0
             i = 0
             while (
@@ -331,13 +292,6 @@ class Yun_For_New:
                 + str(self.run_info["min_distance"])
                 + "公里，将自动回跑..."
             )
-            if printLog:
-                print("跑完了一圈关键点，长度仍然不够，会自动回跑绕圈圈")
-                print(
-                    "公里数不足"
-                    + str(self.run_info["min_distance"])
-                    + "公里，将自动回跑..."
-                )
             index = 0
             while self.now_dist / 1000 < self.run_info["min_distance"]:
                 logger.debug(get_format_log(("manageList : \n", self.manageList)))
@@ -569,7 +523,7 @@ class Yun_For_New:
         for task in tqdm(
             self.task_list,
             leave=True,
-            desc="正在跑步...",
+            desc="正在跑步",
             unit="点",
         ):
             logger.info("开始处理第" + str(task_index + 1) + "个点...")  # 打卡点组
@@ -820,8 +774,6 @@ if __name__ == "__main__":
         run_info[key] = eval(conf.get("Run", key))
     user_info = Login.main()
     info = {"run_info": run_info, "yun_info": yun_info, "user_info": user_info}
-    PUBLIC_KEY = b64decode(yun_info["publickey"])
-    PRIVATE_KEY = b64decode(yun_info["privatekey"])
     # config app版本检查 当前可用3.4.5
     if user_info["frist_login"] and confirm("是否保留登录信息?"):
         save_config()
@@ -858,11 +810,6 @@ if __name__ == "__main__":
             Yun.start()
             Yun.do()
             Yun.finish()
-        # 取消快速模式
-        # if log_table == "3":
-        #     Yun = Yun_For_New(auto_generate_task=True)
-        #     Yun.start()
-        #     Yun.finish()
         if log_table == "3":
             timer()
             Yun = Yun_For_New(info)
