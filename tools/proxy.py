@@ -189,23 +189,14 @@ class Yun:
                 parentDirPath = os.path.dirname(
                     os.path.dirname(os.path.abspath(__file__))
                 )
-                config_file_path = (
-                    parentDirPath
-                    + f"/tools/EasyAutoRunSever/configs/config_{stu_number}.ini"
-                )
                 default_config_file_path = parentDirPath + "/config.ini"
                 # print(config_file_path)
                 # print(default_config_file_path)
                 try:
-                    # 检查是否存在对应的配置文件
-                    if os.path.exists(config_file_path):
-                        config.read(config_file_path, encoding="utf-8")
-                        print(f"Using existing configuration file: {config_file_path}")
-                    else:
-                        config.read(default_config_file_path, encoding="utf-8")
-                        print(
-                            f"Using default configuration file: {default_config_file_path}"
-                        )
+                    config.read(default_config_file_path, encoding="utf-8")
+                    print(
+                        f"Using default configuration file: {default_config_file_path}"
+                    )
                 except configparser.Error as e:
                     print(f"Error reading configuration file: {e}")
                     return
@@ -222,19 +213,12 @@ class Yun:
                 # 检查是否有变化
                 print(current_values)
                 if current_values != new_values:
-                    # 创建新的文件名
-                    new_config_file_path = (
-                        parentDirPath + "/tools/EasyAutoRunServer/configs"
-                    )
-                    new_filename = os.path.join(
-                        new_config_file_path, f"config_{stu_number}.ini"
-                    )
-                    # print(new_filename)
-                    # 更新配置
+
                     for key, value in new_values.items():
                         config.set("User", key, value)
                     # 写入新的文件
-                    with open(new_filename, "w") as configfile:
+                    print("Updated configuration file:", default_config_file_path)
+                    with open(default_config_file_path, "w") as configfile:
                         config.write(configfile)
                     # 打印更新的信息
                     for key, value in new_values.items():
