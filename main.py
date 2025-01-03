@@ -24,7 +24,11 @@ def exit_msg(msg: str = ""):
 def parse_args():
     parser = argparse.ArgumentParser(description="云运动自动跑步脚本")
     parser.add_argument(
-        "-f", "--config_path", type=str, default="./config.ini", help="配置文件路径"
+        "-f",
+        "--config_path",
+        type=str,
+        default=f"{main_path}/config.ini",
+        help="配置文件路径",
     )
     parser.add_argument(
         "-a", "--auto_run", action="store_true", help="自动跑步，默认打表"
@@ -209,7 +213,7 @@ class Yun_For_New:
                     logger.info("高德地图Key已保存")
                     save_config()
             self.my_select_points = ""
-            with open("./map.json") as f:
+            with open(f"{main_path}/map.json") as f:
                 my_s = f.read()
                 tmp = json.loads(my_s)
                 self.my_select_points = tmp["mypoints"]
@@ -542,7 +546,7 @@ class Yun_For_New:
             task_index += 1
             logger.info("第" + str(task_index + 1) + "个点处理完毕！")
 
-    def do_by_points_map(self, path="./tasks", random_choose=False, isDrift=False):
+    def do_by_points_map(self, path=f"./tasks", random_choose=False, isDrift=False):
         files = os.listdir(path)
         files.sort()
         if not random_choose:
@@ -720,7 +724,7 @@ if __name__ == "__main__":
     args = parse_args()
     cfg_path = args.config_path
     # 加载配置文件
-    # cfg_path = "./config.ini"
+    # cfg_path = "{main_path}config.ini"
     conf = configparser.ConfigParser()
     conf.read(cfg_path, encoding="utf-8")
 
@@ -799,7 +803,9 @@ if __name__ == "__main__":
             Yun = Yun_For_New(info)
             Yun.start()
             Yun.do_by_points_map(
-                path="./tasks", random_choose=task_choose, isDrift=driftChoice
+                path=f"{main_path}/tasks",
+                random_choose=task_choose,
+                isDrift=driftChoice,
             )
             Yun.finish_by_points_map()
         if log_table == "2":
@@ -814,7 +820,9 @@ if __name__ == "__main__":
             timer()
             Yun = Yun_For_New(info)
             Yun.start()
-            Yun.do_by_points_map(path="./tasks", random_choose=True, isDrift=True)
+            Yun.do_by_points_map(
+                path=f"{main_path}/tasks", random_choose=True, isDrift=True
+            )
             Yun.finish_by_points_map()
         if log_table == "4":
             Logout()
