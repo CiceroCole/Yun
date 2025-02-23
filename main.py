@@ -477,7 +477,7 @@ class Yun_For_New:
                 info_ = ""
                 if "继续跑步不算当天有效次数" in warnContent:
                     info_ = "您的今日跑步任务已完成"
-                if "由于当前时间不在学校规定的跑步时间内" in warnContent:
+                if "跑步不在每天规定时间" in warnContent:
                     info_ = "当前不在您的学校规定的跑步时间段内"
                 logger.error(f'云运动任务创建失败！: {jdata["warnContent"]}')
                 exit_msg(info_)
