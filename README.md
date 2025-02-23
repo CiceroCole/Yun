@@ -1,4 +1,4 @@
-## 云运动代刷脚本(安徽三联学院)
+## 云运动跑步脚本(安徽三联学院)
 > 免责声明：一切内容只能用于交流学习，24h内自觉卸载，否则后果自负。
 
 **此库基于原作者[Zirconium233](https://github.com/Zirconium233 "Zirconium233")的[yunForNewVersion](https://github.com/Zirconium233/yunForNewVersion "yunForNewVersion")专门针对我所在的学校([安徽三联学院](https://www.slu.edu.cn/ "安徽三联学院"))修改而来，若是同校校友可直接使用，否则请看根据所在学校[自行修改](#自行修改简要教程)。**
